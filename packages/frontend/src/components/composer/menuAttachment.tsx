@@ -187,7 +187,7 @@ export default function MenuAttachment({
       label: tx("contact"),
       action: selectContact.bind(null),
     },
-    !!settings?.settings.webrtc_instance && {
+    !!settings?.desktopSettings.enableAVCalls && {
       icon: "phone",
       label: tx("videochat"),
       action: onVideoChat,

@@ -11,7 +11,6 @@ import EditAccountAndPasswordDialog from "../dialogs/EditAccountAndPasswordDialo
 import useDialog from "../../hooks/dialog/useDialog";
 import SettingsButton from "./SettingsButton";
 import { runtime } from "@deltachat-desktop/runtime-interface";
-import CoreSettingsSwitch from "./CoreSettingsSwitch";
 import DesktopSettingsSwitch from "./DesktopSettingsSwitch";
 import { AutostartState } from "@deltachat-desktop/shared/shared-types";
 import ProxyConfiguration from "../dialogs/ProxyConfiguration";
@@ -36,12 +35,6 @@ export default function Advanced({ settingsStore }: Props) {
       <SettingsButton onClick={() => runtime.openLogFile()}>
         {tx("pref_view_log")}
       </SettingsButton>
-      <CoreSettingsSwitch
-        label={tx("enable_realtime")}
-        settingsKey="webxdc_realtime_enabled"
-        description={tx("enable_realtime_explain")}
-      />
-
       {/*
         don't show it on electron yet, as the message "not available on this runtime/platform"
         would confuse users as long as tauri is not the default */}

@@ -57,7 +57,7 @@ export default function QrCode({
   useEffect(() => {
     if (window.__selectedAccountId) {
       BackendRemote.rpc
-        .getConfig(window.__selectedAccountId, "addr")
+        .getConfig(window.__selectedAccountId, "configured_addr")
         .then((addr) => setAddr(addr || ""));
     }
   }, []);
