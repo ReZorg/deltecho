@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 
-import SettingsStoreInstance, { useSettingsStore } from "../../stores/settings";
+import { useSettingsStore } from "../../stores/settings";
 import { SendBackupDialog } from "../dialogs/SetupMultiDevice";
 import { runtime } from "@deltachat-desktop/runtime-interface";
 import { donationUrl } from "../../../../shared/constants";
@@ -36,14 +36,10 @@ type SettingsView =
 export default function Settings({ onClose }: DialogProps) {
   const { openDialog, closeDialog, openDialogIds } = useDialog();
 
-  // settingsStore may be null during async initialization — all hooks must
-  // be called unconditionally before any early return (Rules of Hooks).
-  // We also read the store directly as a fallback: selectAccount() calls
-  // effect.load() as a fire-and-forget before MainScreen renders, so the store
-  // may already be populated by the time Settings opens even though the
-  // useStore useState snapshot was initialised with null.
-  const _settingsStoreFromHook = useSettingsStore()[0];
-  const settingsStore = _settingsStoreFromHook ?? SettingsStoreInstance.getState();
+  // useSettingsStore uses useSyncExternalStore (React 18), which guarantees
+  // the component always reads the latest store snapshot and re-renders
+  // immediately when effect.load() populates the store — no polling needed.
+  const [settingsStore] = useSettingsStore();
   const tx = useTranslationFunction();
   const [settingsMode, setSettingsMode] = useState<SettingsView>("main");
 
@@ -101,40 +97,9 @@ export default function Settings({ onClose }: DialogProps) {
     }
   }, [openDialogIds]);
 
-  // Guard: settings store not yet loaded (async init).
-  // useStore's subscribe effect runs before this effect (React runs effects in
-  // declaration order within a component tree), so the listener is registered
-  // before load() resolves. We also set up a polling interval as a safety net
-  // in case the store was already populated by selectAccount's fire-and-forget
-  // load() but the useState snapshot missed it.
-  const loadAttempted = useRef(false);
-  const [, forceUpdate] = useState(0);
-  useEffect(() => {
-    // If store is already loaded (selectAccount's fire-and-forget completed),
-    // the useState in useStore captured the stale null — force a re-read.
-    if (SettingsStoreInstance.getState() !== null) {
-      forceUpdate(n => n + 1);
-      return;
-    }
-    // Store is genuinely null — trigger load if an account is selected.
-    if (!loadAttempted.current && window.__selectedAccountId !== undefined) {
-      loadAttempted.current = true;
-      SettingsStoreInstance.effect.load().catch(() => {
-        // Silently ignore — account may not be fully configured yet
-      });
-    }
-    // Polling fallback: re-check every 200ms in case the store loads via
-    // another code path (e.g. MainScreen's useEffect).
-    const interval = setInterval(() => {
-      if (SettingsStoreInstance.getState() !== null) {
-        forceUpdate(n => n + 1);
-        clearInterval(interval);
-      }
-    }, 200);
-    return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+  // Guard: settings store not yet loaded (brief async init window).
+  // useSyncExternalStore guarantees a re-render as soon as effect.load()
+  // populates the store, so this loading state resolves automatically.
   if (!settingsStore) {
     return (
       <Dialog onClose={onClose} fixed width={400} dataTestid="settings-dialog">

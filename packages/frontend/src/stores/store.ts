@@ -1,15 +1,20 @@
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
 import { getLogger } from "../../../shared/logger";
 
 export function useStore<T extends Store<any>>(
   StoreInstance: T,
 ): [T extends Store<infer S> ? S : any, T["dispatch"]] {
-  const [state, setState] = useState(StoreInstance.getState());
-
-  useEffect(() => {
-    setState(StoreInstance.getState());
-    return StoreInstance.subscribe(setState);
-  }, [StoreInstance]);
+  // useSyncExternalStore (React 18) is the correct API for external stores.
+  // It eliminates the race condition between subscription setup and state
+  // updates that the previous useState+useEffect pattern had: the snapshot
+  // is always read synchronously, and any store update (including
+  // fire-and-forget loads that complete after the component mounts) will
+  // immediately trigger a re-render without needing a polling fallback.
+  const state = useSyncExternalStore(
+    (onStoreChange) => StoreInstance.subscribe(onStoreChange),
+    () => StoreInstance.getState(),
+    () => StoreInstance.getState(),
+  );
   // TODO: better return an object to allow destructuring
   return [state, StoreInstance.dispatch.bind(StoreInstance)];
 }
