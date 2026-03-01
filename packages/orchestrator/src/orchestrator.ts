@@ -34,6 +34,11 @@ import {
 import { AARSystem, AARConfig, AARProcessingResult } from "./aar/index.js";
 import { IPCMessageType } from "@deltecho/ipc";
 import { registerCognitiveHandlers } from "./ipc/cognitive-handlers.js";
+import {
+  SessionManager,
+  SessionManagerConfig,
+  FileSessionPersistence,
+} from "./agents/index.js";
 
 const log = getLogger("deep-tree-echo-orchestrator/Orchestrator");
 
@@ -155,6 +160,7 @@ export class Orchestrator {
   private sys6Bridge?: Sys6OrchestratorBridge;
   private doubleMembraneIntegration?: DoubleMembraneIntegration;
   private aarSystem?: AARSystem;
+  private sessionManager?: SessionManager;
   private running: boolean = false;
 
   // Cognitive services for processing messages
@@ -192,6 +198,17 @@ export class Orchestrator {
       enableSentiment: true,
       enableMemory: true,
       enableEmotion: true,
+    });
+
+    // Initialize session manager with file-based persistence
+    const persistence = new FileSessionPersistence();
+    this.sessionManager = new SessionManager({
+      persistence,
+      maxSessions: 100,
+      idleTimeoutMs: 60 * 60 * 1000, // 1 hour
+      maxHistoryPerSession: 100,
+      autoPersistIntervalMs: 30 * 1000, // 30 seconds
+      cleanupIntervalMs: 5 * 60 * 1000, // 5 minutes
     });
   }
 
@@ -326,6 +343,16 @@ export class Orchestrator {
         );
       }
 
+      // Initialize session persistence and start session manager
+      if (this.sessionManager) {
+        const persistence = this.sessionManager["config"].persistence;
+        if (persistence && "init" in persistence) {
+          await (persistence as FileSessionPersistence).init();
+        }
+        this.sessionManager.start();
+        log.info("Session manager started with autonomous session tracking");
+      }
+
       this.running = true;
       log.info(
         `All orchestrator services started successfully (cognitive tier mode: ${this.config.cognitiveTierMode})`,
@@ -427,6 +454,22 @@ export class Orchestrator {
         chat?.chatType === "Mailinglist" ||
         chat?.chatType === "Broadcast";
 
+      // Get or create autonomous session
+      let session;
+      if (this.sessionManager) {
+        session = await this.sessionManager.getOrCreateSession(
+          accountId,
+          chatId,
+          message.fromId,
+          isGroup,
+        );
+        
+        // Add user message to session history
+        if (message.text) {
+          session.addUserMessage(message.text);
+        }
+      }
+
       // Process the message through cognitive system
       const response = await this.processMessage(
         message,
@@ -435,9 +478,16 @@ export class Orchestrator {
         msgId,
         contact?.displayName || contact?.address || "Unknown",
         isGroup,
+        session,
       );
 
       if (response) {
+        // Add assistant response to session history
+        if (session) {
+          session.addAssistantMessage(response);
+          await session.persist();
+        }
+        
         // Send response back to the chat
         await this.deltachatInterface.sendMessage(accountId, chatId, response);
       }
@@ -564,6 +614,7 @@ export class Orchestrator {
     msgId: number,
     senderName: string = "Unknown",
     isGroup: boolean = false,
+    session?: import("./agents/index.js").AutonomousSession,
   ): Promise<string | null> {
     const messageText = message.text || "";
 
@@ -623,6 +674,12 @@ export class Orchestrator {
           targetTier = this.config.cognitiveTierMode;
       }
 
+      // Update session context with cognitive tier and complexity
+      if (session && complexity) {
+        session.setCognitiveTier(targetTier);
+        session.updateAverageComplexity(complexity.score);
+      }
+
       // Update statistics
       this.processingStats.totalMessages++;
       if (complexity) {
@@ -638,26 +695,26 @@ export class Orchestrator {
       switch (targetTier) {
         case "MEMBRANE":
           if (this.doubleMembraneIntegration?.isRunning()) {
-            response = await this.processWithMembrane(messageText, chatId);
+            response = await this.processWithMembrane(messageText, chatId, session);
             this.processingStats.membraneTierMessages++;
           } else {
             log.warn(
               "MEMBRANE tier requested but not available, falling back to SYS6",
             );
-            response = await this.processWithSys6(messageText, chatId);
+            response = await this.processWithSys6(messageText, chatId, session);
             this.processingStats.sys6TierMessages++;
           }
           break;
 
         case "SYS6":
           if (this.sys6Bridge) {
-            response = await this.processWithSys6(messageText, chatId);
+            response = await this.processWithSys6(messageText, chatId, session);
             this.processingStats.sys6TierMessages++;
           } else {
             log.warn(
               "SYS6 tier requested but not available, falling back to BASIC",
             );
-            response = await this.processWithBasic(messageText, chatId, msgId);
+            response = await this.processWithBasic(messageText, chatId, msgId, aarResult, session);
             this.processingStats.basicTierMessages++;
           }
           break;
@@ -669,6 +726,7 @@ export class Orchestrator {
             chatId,
             msgId,
             aarResult,
+            session,
           );
           this.processingStats.basicTierMessages++;
           break;
@@ -700,12 +758,24 @@ export class Orchestrator {
     _chatId: number,
     _msgId: number,
     _aarResult?: AARProcessingResult,
+    session?: import("./agents/index.js").AutonomousSession,
   ): Promise<string> {
     log.debug(
       "Processing with BASIC tier (delegating to CognitiveOrchestrator)",
     );
 
-    const result = await this.cognitiveOrchestrator.processMessage(messageText);
+    // Use session history if available
+    const history = session
+      ? session.getConversationHistory().map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        }))
+      : undefined;
+
+    const result = await this.cognitiveOrchestrator.processMessage(
+      messageText,
+      history,
+    );
 
     // Logic to incorporate AAR context if needed, but for now CognitiveOrchestrator handles the core
     return result.response.content;
@@ -717,11 +787,17 @@ export class Orchestrator {
   private async processWithSys6(
     messageText: string,
     _chatId: number,
+    session?: import("./agents/index.js").AutonomousSession,
   ): Promise<string> {
     log.debug("Processing with SYS6 tier (30-step cognitive cycle)");
 
     if (!this.sys6Bridge) {
       throw new Error("Sys6 bridge not initialized");
+    }
+
+    // Update session cognitive context
+    if (session) {
+      session.updateCognitiveContext({ sys6Tier: true });
     }
 
     return this.sys6Bridge.processMessage(messageText);
@@ -733,6 +809,7 @@ export class Orchestrator {
   private async processWithMembrane(
     messageText: string,
     _chatId: number,
+    session?: import("./agents/index.js").AutonomousSession,
   ): Promise<string> {
     log.debug("Processing with MEMBRANE tier (bio-inspired architecture)");
 
@@ -740,15 +817,27 @@ export class Orchestrator {
       throw new Error("Double membrane integration not initialized");
     }
 
-    const history = this.memoryStore.retrieveRecentMemories(10);
-
-    return this.doubleMembraneIntegration.chat(
-      messageText,
-      history.map((h: string, i: number) => ({
+    // Use session history if available, otherwise fall back to memory store
+    let history: Array<{ role: string; content: string }>;
+    if (session) {
+      history = session.getConversationHistory().map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+    } else {
+      const memoryHistory = this.memoryStore.retrieveRecentMemories(10);
+      history = memoryHistory.map((h: string, i: number) => ({
         role: i % 2 === 0 ? "user" : "assistant",
         content: h,
-      })),
-    );
+      }));
+    }
+
+    // Update session cognitive context
+    if (session) {
+      session.updateCognitiveContext({ membraneTier: true });
+    }
+
+    return this.doubleMembraneIntegration.chat(messageText, history);
   }
 
   /**
@@ -1037,6 +1126,11 @@ ${response.body}`;
 
     log.info("Stopping orchestrator services...");
 
+    // Stop session manager first to persist all sessions
+    if (this.sessionManager) {
+      await this.sessionManager.stop();
+    }
+
     // Stop all services in reverse order (newest first)
     if (this.doubleMembraneIntegration) {
       await this.doubleMembraneIntegration.stop();
@@ -1100,6 +1194,13 @@ ${response.body}`;
    */
   public getDove9Integration(): Dove9Integration | undefined {
     return this.dove9Integration;
+  }
+
+  /**
+   * Get SessionManager for direct access
+   */
+  public getSessionManager(): SessionManager | undefined {
+    return this.sessionManager;
   }
 
   /**
@@ -1233,6 +1334,11 @@ ${response.body}`;
     } | null;
     doubleMembrane: { running: boolean; identityEnergy?: number } | null;
     dove9: { running: boolean } | null;
+    sessions: {
+      active: number;
+      totalMessages: number;
+      averageSessionAge: number;
+    } | null;
     stats: {
       totalMessages: number;
       basicTierMessages: number;
@@ -1242,6 +1348,8 @@ ${response.body}`;
     };
   } {
     const sys6State = this.sys6Bridge?.getState();
+    const sessionStats = this.sessionManager?.getStats();
+    
     return {
       tierMode: this.config.cognitiveTierMode,
       sys6: this.sys6Bridge
@@ -1262,6 +1370,13 @@ ${response.body}`;
         ? {
             running:
               this.dove9Integration.getCognitiveState()?.running || false,
+          }
+        : null,
+      sessions: sessionStats
+        ? {
+            active: sessionStats.activeSessions,
+            totalMessages: sessionStats.totalMessages,
+            averageSessionAge: sessionStats.averageSessionAge,
           }
         : null,
       stats: { ...this.processingStats },
