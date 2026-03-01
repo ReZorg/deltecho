@@ -14,7 +14,7 @@
   "containers": [
     {
       "class_name": "DeltEchoContainer",
-      "image": "registry.cloudflare.com/cdc9766260a44de95a8e4ce5aae55fdb/deltecho-chat:v5",
+      "image": "registry.cloudflare.com/cdc9766260a44de95a8e4ce5aae55fdb/deltecho-chat:v7",
       "max_instances": 10,
       // Use immediate rollout to avoid gradual rollout issues
       "rollout_step_percentage": [100]
