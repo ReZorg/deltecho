@@ -676,7 +676,9 @@ export class Orchestrator {
 
       // Update session context with cognitive tier and complexity
       if (session && complexity) {
-        session.setCognitiveTier(targetTier);
+        // Map FULL to MEMBRANE for session tracking
+        const sessionTier = targetTier === "FULL" ? "MEMBRANE" : targetTier;
+        session.setCognitiveTier(sessionTier);
         session.updateAverageComplexity(complexity.score);
       }
 
@@ -755,26 +757,23 @@ export class Orchestrator {
    */
   private async processWithBasic(
     messageText: string,
-    _chatId: number,
-    _msgId: number,
+    chatId: number,
+    msgId: number,
     _aarResult?: AARProcessingResult,
-    session?: import("./agents/index.js").AutonomousSession,
+    _session?: import("./agents/index.js").AutonomousSession,
   ): Promise<string> {
     log.debug(
       "Processing with BASIC tier (delegating to CognitiveOrchestrator)",
     );
 
-    // Use session history if available
-    const history = session
-      ? session.getConversationHistory().map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        }))
-      : undefined;
-
+    // Note: Session history is maintained by the session manager and stored in RAGMemoryStore
+    // CognitiveOrchestrator will access it via the memory system
     const result = await this.cognitiveOrchestrator.processMessage(
       messageText,
-      history,
+      {
+        chatId,
+        messageId: msgId,
+      },
     );
 
     // Logic to incorporate AAR context if needed, but for now CognitiveOrchestrator handles the core
