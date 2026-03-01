@@ -38,7 +38,8 @@
     "start:orchestrator": "pnpm --filter=deep-tree-echo-orchestrator start",
     "build:tauri": "pnpm --filter=@deltachat-desktop/target-tauri tauri build",
     "start:bot": "npx ts-node bin/deltecho-bot.ts",
-    "reset:node_modules": "rm -rf node_modules && rm -rf packages/*/node_modules || true && pnpm i"
+    "reset:node_modules": "rm -rf node_modules && rm -rf packages/*/node_modules || true && pnpm i",
+    "build:ordered": "pnpm --filter deep-tree-echo-core build && pnpm --filter @deltecho/sys6-triality build && pnpm --filter @deltecho/ipc build && pnpm --filter @deltecho/dove9 build && pnpm --filter @deltecho/cognitive build && pnpm --filter deep-tree-echo-orchestrator build"
   },
   "engineStrict": true,
   "engines": {
