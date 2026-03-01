@@ -141,9 +141,6 @@ export default class ScreenController extends Component {
       await this.unSelectAccount();
       this.selectedAccountId = accountId;
       (window.__selectedAccountId as number) = accountId;
-      // forcing to load settings here so when we for example switch to Settings
-      // from context menu they're already present and we avoid crashing
-      SettingsStoreInstance.effect.load();
     } else {
       log.info("account is already selected");
       // do not return here as this can be the state transition between unconfigured to configured
@@ -161,6 +158,26 @@ export default class ScreenController extends Component {
     if (!dontStartIo) {
       await BackendRemote.rpc.startIo(accountId);
     }
+
+    // Load settings after IO is started so the DeltaChat core is fully ready.
+    // Retry with exponential backoff if the first attempt fails.
+    const loadSettingsWithRetry = async (attempt = 0): Promise<void> => {
+      try {
+        await SettingsStoreInstance.effect.load();
+      } catch (err) {
+        if (attempt < 5) {
+          const delay = Math.min(500 * Math.pow(2, attempt), 8000);
+          log.warn(
+            `settings load failed (attempt ${attempt + 1}), retrying in ${delay}ms`,
+            err,
+          );
+          setTimeout(() => loadSettingsWithRetry(attempt + 1), delay);
+        } else {
+          log.error("settings load failed after 5 attempts", err);
+        }
+      }
+    };
+    loadSettingsWithRetry();
 
     BackendRemote.rpc.getInfo(accountId).then((info) => {
       log.info("account_info", info);
