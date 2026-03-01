@@ -1,0 +1,152 @@
+
+> @deltachat-desktop/frontend@ test C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\packages\frontend
+> jest "src/components/DeepTreeEchoBot/__tests__/DeepTreeEchoBotClass.test.ts"
+
+  console.info
+    [early] render/components/DeepTreeEchoBot/LocalIntelligence: Local Intelligence (Innermost Membrane) initialized
+
+      at log (../shared/logger.ts:124:13)
+
+  console.info
+    [early] render/components/DeepTreeEchoBot/DeepTreeEchoBot: DeepTreeEchoBot initialized with options: {
+      enabled: true,
+      memoryEnabled: false,
+      visionEnabled: true,
+      webAutomationEnabled: false,
+      embodimentEnabled: false,
+      useParallelProcessing: false,
+      useAgenticMode: false,
+      agenticProvider: 'anthropic',
+      hasApiKey: false,
+      hasApiEndpoint: false,
+      configuredCognitiveKeys: 0
+    }
+
+      at log (../shared/logger.ts:124:13)
+
+  console.log
+    [DEBUG-VS] analyzeAndStoreVisualMemory called
+
+      at DeepTreeEchoBot.analyzeAndStoreVisualMemory (src/components/DeepTreeEchoBot/DeepTreeEchoBot.ts:829:13)
+
+  console.log
+    [DEBUG-VS] memoryEnabled: false
+
+      at DeepTreeEchoBot.analyzeAndStoreVisualMemory (src/components/DeepTreeEchoBot/DeepTreeEchoBot.ts:830:13)
+
+  console.log
+    [DEBUG-VS] visionEnabled: true
+
+      at DeepTreeEchoBot.analyzeAndStoreVisualMemory (src/components/DeepTreeEchoBot/DeepTreeEchoBot.ts:831:13)
+
+  console.log
+    [DEBUG-VS] Skipping because option disabled
+
+      at DeepTreeEchoBot.analyzeAndStoreVisualMemory (src/components/DeepTreeEchoBot/DeepTreeEchoBot.ts:834:15)
+
+  console.info
+    [early] render/components/DeepTreeEchoBot/DeepTreeEchoBot: Generated response using general processing (with Vision check)
+
+      at log (../shared/logger.ts:124:13)
+
+  console.info
+    [early] render/components/DeepTreeEchoBot/DeepTreeEchoBot: Sent response to chat 100
+
+      at log (../shared/logger.ts:124:13)
+
+  console.info
+    [early] render/components/DeepTreeEchoBot/DeepTreeEchoBot: DeepTreeEchoBot initialized with options: {
+      enabled: true,
+      memoryEnabled: true,
+      visionEnabled: true,
+      webAutomationEnabled: false,
+      embodimentEnabled: false,
+      useParallelProcessing: false,
+      useAgenticMode: false,
+      agenticProvider: 'anthropic',
+      hasApiKey: false,
+      hasApiEndpoint: false,
+      configuredCognitiveKeys: 0
+    }
+
+      at log (../shared/logger.ts:124:13)
+
+  console.error
+    [early] render/components/DeepTreeEchoBot/DeepTreeEchoBot: Error generating response: TypeError: this.memoryStore.getConversationContext is not a function
+        at DeepTreeEchoBot.generateAndSendResponse (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\packages\frontend\src\components\DeepTreeEchoBot\DeepTreeEchoBot.ts:632:47)
+        at DeepTreeEchoBot.processMessage (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\packages\frontend\src\components\DeepTreeEchoBot\DeepTreeEchoBot.ts:195:18)
+        at Object.<anonymous> (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\packages\frontend\src\components\DeepTreeEchoBot\__tests__\DeepTreeEchoBotClass.test.ts:149:9)
+
+    [0m [90m 122 |[39m     [90m// This can happen during module initialization before runtime.initialize() is called[39m
+     [90m 123 |[39m     [90m/* ignore-console-log */[39m
+    [31m[1m>[22m[39m[90m 124 |[39m     variant[33m.[39mlog([32m`[early] ${channel}:`[39m[33m,[39m [33m...[39margs)
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 125 |[39m     [36mreturn[39m [90m// Don't throw - just gracefully continue[39m
+     [90m 126 |[39m   }
+     [90m 127 |[39m   handler(channel[33m,[39m variant[33m.[39mlevel[33m,[39m stacktrace[33m,[39m [33m...[39margs)[0m
+
+      at log (../shared/logger.ts:124:13)
+      at Logger.error (../shared/logger.ts:203:5)
+      at DeepTreeEchoBot.generateAndSendResponse (src/components/DeepTreeEchoBot/DeepTreeEchoBot.ts:754:11)
+      at DeepTreeEchoBot.processMessage (src/components/DeepTreeEchoBot/DeepTreeEchoBot.ts:195:18)
+      at Object.<anonymous> (src/components/DeepTreeEchoBot/__tests__/DeepTreeEchoBotClass.test.ts:149:9)
+
+  console.log
+    generateResponse calls: 0
+
+      at Object.<anonymous> (src/components/DeepTreeEchoBot/__tests__/DeepTreeEchoBotClass.test.ts:157:17)
+
+  console.info
+    [early] render/components/DeepTreeEchoBot/DeepTreeEchoBot: DeepTreeEchoBot initialized with options: {
+      enabled: true,
+      memoryEnabled: false,
+      visionEnabled: false,
+      webAutomationEnabled: false,
+      embodimentEnabled: false,
+      useParallelProcessing: true,
+      useAgenticMode: false,
+      agenticProvider: 'anthropic',
+      hasApiKey: false,
+      hasApiEndpoint: false,
+      configuredCognitiveKeys: 0
+    }
+
+      at log (../shared/logger.ts:124:13)
+
+  console.error
+    [early] render/components/DeepTreeEchoBot/DeepTreeEchoBot: Error generating response: TypeError: this.llmService.generateFullParallelResponse is not a function
+        at DeepTreeEchoBot.generateAndSendResponse (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\packages\frontend\src\components\DeepTreeEchoBot\DeepTreeEchoBot.ts:668:46)
+        at DeepTreeEchoBot.processMessage (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\packages\frontend\src\components\DeepTreeEchoBot\DeepTreeEchoBot.ts:195:18)
+        at Object.<anonymous> (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\packages\frontend\src\components\DeepTreeEchoBot\__tests__\DeepTreeEchoBotClass.test.ts:203:19)
+        at Promise.then.completed (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\utils.js:298:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\utils.js:231:10)
+        at _callCircusTest (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\run.js:316:40)
+        at runNextTicks (node:internal/process/task_queues:64:5)
+        at processTimers (node:internal/timers:538:9)
+        at _runTest (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\run.js:252:3)
+        at _runTestsForDescribeBlock (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\run.js:126:9)
+        at _runTestsForDescribeBlock (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\run.js:121:9)
+        at run (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\run.js:71:3)
+        at runAndTransformResultsToJestFormat (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+        at jestAdapter (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+        at runTestInternal (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\node_modules\.pnpm\jest-runner@29.7.0\node_modules\jest-runner\build\runTest.js:367:16)
+        at runTest (C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\node_modules\.pnpm\jest-runner@29.7.0\node_modules\jest-runner\build\runTest.js:444:34)
+
+    [0m [90m 122 |[39m     [90m// This can happen during module initialization before runtime.initialize() is called[39m
+     [90m 123 |[39m     [90m/* ignore-console-log */[39m
+    [31m[1m>[22m[39m[90m 124 |[39m     variant[33m.[39mlog([32m`[early] ${channel}:`[39m[33m,[39m [33m...[39margs)
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 125 |[39m     [36mreturn[39m [90m// Don't throw - just gracefully continue[39m
+     [90m 126 |[39m   }
+     [90m 127 |[39m   handler(channel[33m,[39m variant[33m.[39mlevel[33m,[39m stacktrace[33m,[39m [33m...[39margs)[0m
+
+      at log (../shared/logger.ts:124:13)
+      at Logger.error (../shared/logger.ts:203:5)
+      at DeepTreeEchoBot.generateAndSendResponse (src/components/DeepTreeEchoBot/DeepTreeEchoBot.ts:754:11)
+      at DeepTreeEchoBot.processMessage (src/components/DeepTreeEchoBot/DeepTreeEchoBot.ts:195:18)
+      at Object.<anonymous> (src/components/DeepTreeEchoBot/__tests__/DeepTreeEchoBotClass.test.ts:203:19)
+
+C:\Users\sandbox_713\Documents\gh\deltecho-chat\deltecho-chat\packages\frontend:
+???ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL??? @deltachat-desktop/frontend@ test: `jest "src/components/DeepTreeEchoBot/__tests__/DeepTreeEchoBotClass.test.ts"`
+Exit status 1

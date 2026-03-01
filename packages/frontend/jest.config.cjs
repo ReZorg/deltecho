@@ -1,0 +1,76 @@
+/**
+ * Jest Configuration for Frontend Package
+ *
+ * Uses ts-jest with jsdom environment for React component testing.
+ * NOTE: Transform options are in the transform array, not globals (deprecated).
+ */
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  testMatch: ['<rootDir>/src/**/__tests__/**/*.test.{ts,tsx}'],
+  moduleNameMapper: {
+    // Handle CSS imports (with CSS modules)
+    '\\.module\\.(css|scss)$': 'identity-obj-proxy',
+    // Handle CSS imports (without CSS modules)
+    '\\.(css|scss)$': '<rootDir>/__mocks__/styleMock.js',
+    // Handle image imports
+    '\\.(jpg|jpeg|png|gif|webp|svg)$': '<rootDir>/__mocks__/fileMock.js',
+    // Mock ESM-only modules
+    '^react-force-graph-2d$': '<rootDir>/__mocks__/styleMock.js',
+    '^react-force-graph-3d$': '<rootDir>/__mocks__/styleMock.js',
+    '^d3-.*$': '<rootDir>/__mocks__/styleMock.js',
+    // Mock WASM modules
+    '@deltachat/message_parser_wasm/message_parser_wasm': '<rootDir>/__mocks__/styleMock.js',
+    // Shared package mapping
+    '^@deltachat-desktop/shared/(.*)\\.js$': '<rootDir>/../shared/$1.ts',
+    // Workspace package mappings
+    '^@deltecho/ui-components$': '<rootDir>/../ui-components/src/index.ts',
+    '^@deltecho/cognitive$': '<rootDir>/../cognitive/src/index.ts',
+    '^@deltecho/avatar$': '<rootDir>/../avatar/src/index.ts',
+    '^@deltecho/reasoning$': '<rootDir>/../reasoning/src/index.ts',
+    '^@deltecho/sys6-triality$': '<rootDir>/../sys6-triality/src/index.ts',
+    '^@deltecho/dove9$': '<rootDir>/../dove9/src/index.ts',
+    '^deep-tree-echo-core$': '<rootDir>/../core/src/index.ts',
+    '^deep-tree-echo-core/(.*)$': '<rootDir>/../core/src/$1/index.ts',
+    // Handle .js extensions in ESM-style imports (strip for Jest/TS)
+    '^@deltecho/reasoning/(.*)\\.js$': '<rootDir>/../reasoning/src/$1.ts',
+    '^@deltecho/sys6-triality/(.*)\\.js$': '<rootDir>/../sys6-triality/src/$1.ts',
+    '^@deltecho/dove9/(.*)\\.js$': '<rootDir>/../dove9/src/$1.ts',
+    // Generic relative .js to .ts/tsx mapping
+    '^(\\.\\.?/.*)\\.js$': '$1',
+  },
+  transform: {
+    '^.+\\.(ts|tsx)$': [
+      'ts-jest',
+      {
+        tsconfig: 'tsconfig.test.json',
+        diagnostics: {
+          // Reduce noise from type errors in tests (caught by tsc)
+          warnOnly: true,
+        },
+      },
+    ],
+  },
+  transformIgnorePatterns: [
+    'node_modules/(?!(@deltachat/message_parser_wasm|@deltachat-desktop|deep-tree-echo-core|deep-tree-echo-orchestrator)/)',
+  ],
+  // Note: 'globals.ts-jest' is deprecated in ts-jest 29+
+  // Options should be in the transform array above
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/index.tsx',
+    '!src/**/types.ts',
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 70,
+      functions: 70,
+      lines: 70,
+      statements: 70,
+    },
+  },
+  // Increase timeout for async tests
+  testTimeout: 10000,
+}

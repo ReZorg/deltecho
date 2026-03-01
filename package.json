@@ -1,0 +1,98 @@
+{
+  "private": "true",
+  "name": "deltecho-chat",
+  "packageManager": "pnpm@9.15.0",
+  "description": "DeltaChat interface with Deep Tree Echo cognitive orchestration",
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "preinstall": "node ./bin/check-nodejs-version.js",
+    "check": "pnpm check:types && pnpm check:lint && pnpm check:format && pnpm check:target-versions && pnpm check:log-conventions",
+    "check:types": "pnpm -r --no-bail check:types",
+    "check:lint": "eslint . --ext .js,.ts,.tsx",
+    "check:format": "prettier --check \"**/*.scss\" \"packages/**/*.{js,ts,tsx,json}\" \"**/*.md\"",
+    "check:log-conventions": "node ./bin/log-conventions",
+    "fix": "pnpm fix:lint && pnpm fix:format",
+    "fix:lint": "eslint . --ext .js,.ts,.tsx --fix || true",
+    "fix:format": "prettier --write \"**/*.scss\" \"packages/**/*.{js,ts,tsx,json}\" \"**/*.md\"",
+    "dev": "pnpm dev:electron",
+    "start:electron": "pnpm --filter=@deltachat-desktop/target-electron start",
+    "build:electron": "pnpm --filter=@deltachat-desktop/target-electron build",
+    "dev:electron": "pnpm --filter=@deltachat-desktop/target-electron dev",
+    "debug:electron": "pnpm --filter=@deltachat-desktop/target-electron dev-inspect",
+    "watch:electron": "pnpm --filter=@deltachat-desktop/target-electron watch",
+    "start:browser": "pnpm --filter=@deltachat-desktop/target-browser start",
+    "build:browser": "pnpm --filter=@deltachat-desktop/target-browser build",
+    "start:webserver": "pnpm --filter=@deltachat-desktop/target-browser start:server",
+    "dev:tauri": "pnpm --filter=@deltachat-desktop/target-tauri start",
+    "translations:pull": "tx pull -s -f -t && tx pull -f -a",
+    "translations:convert": "node ./bin/build-shared-convert-translations.mjs ./_locales",
+    "translations:update": "pnpm translations:pull && pnpm translations:convert && ./bin/find_complete_translations.sh",
+    "update:target-versions": "node ./bin/update_desktop_version.js && prettier --write --log-level=silent \"packages/target**/package.json\"",
+    "check:target-versions": "node ./bin/update_desktop_version.js --check",
+    "test": "pnpm -r --no-bail test",
+    "test-and-check": "pnpm test && pnpm check",
+    "e2e": "pnpm build:browser && pnpm --filter=e2e-tests e2e",
+    "build:core": "pnpm --filter=deep-tree-echo-core build",
+    "build:orchestrator": "pnpm --filter=deep-tree-echo-orchestrator build",
+    "start:orchestrator": "pnpm --filter=deep-tree-echo-orchestrator start",
+    "build:tauri": "pnpm --filter=@deltachat-desktop/target-tauri tauri build",
+    "start:bot": "npx ts-node bin/deltecho-bot.ts",
+    "reset:node_modules": "rm -rf node_modules && rm -rf packages/*/node_modules || true && pnpm i"
+  },
+  "engineStrict": true,
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9.6.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/events": "^3.0.3",
+    "@types/ignore-walk": "^4.0.3",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "chokidar": "^3.6.0",
+    "cross-env": "^10.1.0",
+    "dotenv": "^16.6.1",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^16.5.0",
+    "ignore-walk": "^7.0.0",
+    "prettier": "3.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "catalog:",
+    "typescript-eslint": "^8.53.1",
+    "xml-js": "^1.6.11",
+    "yaml": "^2.8.2"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@deltachat/jsonrpc-client": "^1.160.0",
+    "@deltachat/stdio-rpc-server": "^1.160.0",
+    "events": "^3.3.0"
+  },
+  "keywords": [
+    "deltecho",
+    "deltachat",
+    "deep-tree-echo",
+    "cognitive-architecture",
+    "chat",
+    "orchestrator"
+  ],
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/o9nn/deltecho-chat.git"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "^18.3.27",
+      "@types/react-dom": "^18.3.7",
+      "react": "^18.3.1",
+      "react-dom": "^18.3.1"
+    }
+  }
+}
