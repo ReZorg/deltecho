@@ -26,8 +26,8 @@ export default function Profile({ settingsStore }: Props) {
   );
 
   const profileName =
-    settingsStore.settings.displayname !== ""
-      ? settingsStore.settings.displayname
+    settingsStore.settings?.displayname !== ""
+      ? settingsStore.settings?.displayname
       : tx("pref_profile_info_headline");
 
   return (
@@ -40,7 +40,7 @@ export default function Profile({ settingsStore }: Props) {
       <div className={styles.profileDetails}>
         <div className={styles.profileDisplayName}>{profileName}</div>
         <div className={styles.profileBio}>
-          {settingsStore.settings.selfstatus?.replace("\n", " ") ||
+          {settingsStore.settings?.selfstatus?.replace("\n", " ") ||
             tx("pref_default_status_label")}
         </div>
       </div>
