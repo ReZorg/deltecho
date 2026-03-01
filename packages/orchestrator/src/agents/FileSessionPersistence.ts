@@ -8,6 +8,7 @@
 import { getLogger } from "deep-tree-echo-core";
 import * as fs from "fs/promises";
 import * as path from "path";
+import * as crypto from "crypto";
 import {
   SessionPersistence,
   PersistedSessionData,
@@ -20,10 +21,15 @@ export class FileSessionPersistence implements SessionPersistence {
 
   constructor(sessionDir?: string) {
     // Default to .deep-tree-echo/sessions in user's home directory
-    const homeDir =
-      process.env.HOME || process.env.USERPROFILE || "/tmp";
+    const homeDir = process.env.HOME || process.env.USERPROFILE;
+    if (!homeDir && !sessionDir) {
+      throw new Error(
+        "No home directory found. Please provide a sessionDir or set HOME/USERPROFILE environment variable.",
+      );
+    }
     this.sessionDir =
-      sessionDir || path.join(homeDir, ".deep-tree-echo", "sessions");
+      sessionDir ||
+      path.join(homeDir!, ".deep-tree-echo", "sessions");
   }
 
   /**
@@ -41,11 +47,12 @@ export class FileSessionPersistence implements SessionPersistence {
 
   /**
    * Get file path for a session
+   * Uses SHA256 hash to prevent collisions from sanitization
    */
   private getSessionPath(sessionId: string): string {
-    // Sanitize session ID to prevent path traversal
-    const sanitized = sessionId.replace(/[^a-zA-Z0-9-_]/g, "_");
-    return path.join(this.sessionDir, `${sanitized}.json`);
+    // Use hash to ensure unique filenames and prevent path traversal
+    const hash = crypto.createHash("sha256").update(sessionId).digest("hex");
+    return path.join(this.sessionDir, `${hash}.json`);
   }
 
   /**

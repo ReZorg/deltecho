@@ -215,10 +215,11 @@ export class AutonomousSession {
     if (this.context.averageComplexity === undefined) {
       this.context.averageComplexity = complexity;
     } else {
-      // Running average
-      const count = this.context.messageCount;
+      // Running average using previous message count
+      const prevCount = this.context.messageCount - 1;
       this.context.averageComplexity =
-        (this.context.averageComplexity * (count - 1) + complexity) / count;
+        (this.context.averageComplexity * prevCount + complexity) /
+        this.context.messageCount;
     }
     this.isDirty = true;
   }

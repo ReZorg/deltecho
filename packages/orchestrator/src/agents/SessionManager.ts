@@ -31,13 +31,20 @@ export interface SessionManagerConfig {
 
 export class SessionManager {
   private sessions: Map<string, AutonomousSession> = new Map();
-  private config: Required<SessionManagerConfig>;
+  private config: {
+    persistence?: SessionPersistence;
+    maxSessions: number;
+    idleTimeoutMs: number;
+    maxHistoryPerSession: number;
+    autoPersistIntervalMs: number;
+    cleanupIntervalMs: number;
+  };
   private persistTimer?: NodeJS.Timeout;
   private cleanupTimer?: NodeJS.Timeout;
 
   constructor(config: SessionManagerConfig = {}) {
     this.config = {
-      persistence: config.persistence ?? undefined!,
+      persistence: config.persistence,
       maxSessions: config.maxSessions ?? 100,
       idleTimeoutMs: config.idleTimeoutMs ?? 60 * 60 * 1000, // 1 hour
       maxHistoryPerSession: config.maxHistoryPerSession ?? 100,
@@ -50,6 +57,13 @@ export class SessionManager {
       idleTimeoutMs: this.config.idleTimeoutMs,
       hasPersistence: !!this.config.persistence,
     });
+  }
+
+  /**
+   * Get persistence implementation
+   */
+  public getPersistence(): SessionPersistence | undefined {
+    return this.config.persistence;
   }
 
   /**

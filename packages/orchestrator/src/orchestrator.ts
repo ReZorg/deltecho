@@ -345,7 +345,7 @@ export class Orchestrator {
 
       // Initialize session persistence and start session manager
       if (this.sessionManager) {
-        const persistence = this.sessionManager["config"].persistence;
+        const persistence = this.sessionManager.getPersistence();
         if (persistence && "init" in persistence) {
           await (persistence as FileSessionPersistence).init();
         }
