@@ -92,10 +92,14 @@ app.get("/", (req, res) => {
   }
 });
 
-// SPA fallback route for /live2d-avatar - serves main.html so the frontend can handle routing
-app.get("/live2d-avatar", authMiddleWare, (_req, res) => {
-  res.sendFile(join(DIST_DIR, "main.html"));
-});
+// SPA routes that should serve main.html for frontend routing
+// Add new frontend routes here as they are created
+const SPA_ROUTES = ["/live2d-avatar", "/deep-tree-echo", "/ai-neighborhood"];
+for (const route of SPA_ROUTES) {
+  app.get(route, authMiddleWare, (_req, res) => {
+    res.sendFile(join(DIST_DIR, "main.html"));
+  });
+}
 
 app.use(express.static(DIST_DIR));
 app.use("/locales", express.static(LOCALES_DIR));
@@ -202,6 +206,17 @@ app.use(helpRoute);
 
 app.get("/themes.json", async (_req, res) => {
   res.json(await readThemeDir());
+});
+
+// SPA catch-all fallback: any unmatched GET that accepts HTML gets main.html
+// This MUST be after all API routes and static file middleware
+app.get("*", authMiddleWare, (req, res, next) => {
+  // Only serve SPA fallback for navigation requests (not API/asset requests)
+  const accept = req.headers.accept || "";
+  if (accept.includes("text/html")) {
+    return res.sendFile(join(DIST_DIR, "main.html"));
+  }
+  next();
 });
 
 // Create server based on environment

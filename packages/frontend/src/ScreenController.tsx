@@ -90,16 +90,25 @@ export default class ScreenController extends Component {
     window.__screen = this.state.screen;
   }
 
+  // URL path → Screen mapping for SPA routing
+  // Add new frontend routes here as they are created
+  private static readonly URL_SCREEN_MAP: Record<string, Screens> = {
+    "/live2d-avatar": Screens.Live2DAvatar,
+    "/deep-tree-echo": Screens.Live2DAvatar,
+    "/ai-neighborhood": Screens.AINeighborhood,
+  };
+
   private async startup() {
-    // Check if we're on the /live2d-avatar route
-    const isLive2DAvatarRoute = window.location.pathname === "/live2d-avatar";
+    // Resolve URL path to a target screen (if any)
+    const targetScreen =
+      ScreenController.URL_SCREEN_MAP[window.location.pathname];
 
     const lastLoggedInAccountId = await this._getLastUsedAccount();
     if (lastLoggedInAccountId) {
       await this.selectAccount(lastLoggedInAccountId);
-      // After account is selected, switch to Live2D Avatar screen if on that route
-      if (isLive2DAvatarRoute) {
-        this.changeScreen(Screens.Live2DAvatar);
+      // After account is selected, switch to the URL-targeted screen if applicable
+      if (targetScreen) {
+        this.changeScreen(targetScreen);
       }
     } else {
       const allAccountIds = await BackendRemote.rpc.getAllAccountIds();

@@ -487,6 +487,7 @@ const DeepTreeEchoHub: React.FC = () => {
   // Avatar state - derive emotional vector from simulation state
   const [avatarController, setAvatarController] = useState<Live2DAvatarController | null>(null);
   const [avatarLoaded, setAvatarLoaded] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   const avatarEmotionalState: EmotionalVector = {
     joy: simulationState.currentState === "Novel Insights" ? 0.8 : 0.3,
@@ -832,7 +833,11 @@ const DeepTreeEchoHub: React.FC = () => {
                       alignItems: "center",
                       gap: "0.5rem",
                       fontSize: "0.875rem",
-                      color: avatarLoaded ? "#34d399" : "#f59e0b",
+                      color: avatarError
+                        ? "#f87171"
+                        : avatarLoaded
+                          ? "#34d399"
+                          : "#f59e0b",
                     }}
                   >
                     <div
@@ -840,10 +845,18 @@ const DeepTreeEchoHub: React.FC = () => {
                         width: 8,
                         height: 8,
                         borderRadius: "50%",
-                        backgroundColor: avatarLoaded ? "#34d399" : "#f59e0b",
+                        backgroundColor: avatarError
+                          ? "#f87171"
+                          : avatarLoaded
+                            ? "#34d399"
+                            : "#f59e0b",
                       }}
                     />
-                    {avatarLoaded ? "Live2D Active" : "Loading..."}
+                    {avatarError
+                      ? "Sprite Fallback"
+                      : avatarLoaded
+                        ? "Live2D Active"
+                        : "Loading..."}
                   </span>
                 </div>
               </div>
@@ -855,7 +868,10 @@ const DeepTreeEchoHub: React.FC = () => {
                   scale={0.25}
                   emotionalState={avatarEmotionalState}
                   onLoad={() => setAvatarLoaded(true)}
-                  onError={(err) => console.warn("Avatar error:", err)}
+                  onError={(err) => {
+                    console.warn("Avatar error:", err);
+                    setAvatarError(err?.message || "Unknown error");
+                  }}
                   onControllerReady={(ctrl) => setAvatarController(ctrl)}
                   showLoading={true}
                   showError={true}
