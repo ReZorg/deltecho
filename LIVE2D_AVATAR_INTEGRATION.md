@@ -278,3 +278,34 @@ If Live2D fails to load:
 - [Deep Tree Echo Documentation](./RAGBOT_ROADMAP.md)
 - [Chat Integration Analysis](./CHAT_INTEGRATION_ANALYSIS.md)
 - [Avatar Package Documentation](./packages/avatar/README.md)
+
+
+---
+
+# New Integration (Post-Refactor)
+
+This section describes the updated integration of the Live2D avatar within the `deltecho` framework, following the refactor that introduced the Deep Tree Echo Hub.
+
+## 1. Core Components
+
+- **`Live2DAvatar`**: A React component that wraps the Live2D avatar system.
+- **`Live2DAvatarManager`**: A class that manages the lifecycle of the Live2D avatar.
+- **`PixiLive2DRenderer`**: A class that implements the rendering of the Live2D model using PixiJS.
+
+## 2. Cognitive State Binding
+
+The avatar's expressions and motions are now directly tied to the state of the Deep Tree Echo cognitive simulation within the Deep Tree Echo Hub.
+
+The mapping is defined in `packages/frontend/src/components/screens/DeepTreeEchoHub/DeepTreeEchoHub.tsx`:
+
+```typescript
+const stateToExpression: Record<string, [string, string]> = {
+  "Recursive Expansion": ["thinking", "thinking"],
+  "Novel Insights": ["happy", "nodding"],
+  // ...
+};
+```
+
+## 3. SPA Route
+
+A dedicated `/live2d-avatar` route allows for direct access to the avatar. This is handled by the Express server in `packages/target-browser/src/index.ts`, which serves the main SPA `index.html` file for this route. A catch-all route has also been added to handle any future frontend routes.

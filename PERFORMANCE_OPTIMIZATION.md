@@ -93,3 +93,22 @@ We're working on:
 - [ ] Smaller, custom-trained models
 - [ ] WASM backend option
 - [ ] Progressive loading based on usage patterns
+
+
+---
+
+# New Performance Considerations (Post-Refactor)
+
+This section provides updated performance guidance for the `deltecho` application, focusing on the Live2D avatar and TensorFlow.js.
+
+## 1. Live2D Avatar
+
+- **Model Complexity**: The complexity of the Live2D model can significantly impact performance. Use models with a reasonable number of polygons and textures.
+- **Canvas Size**: The size of the canvas used to render the avatar can affect performance. Use the smallest canvas size that meets your needs.
+- **Hardware Acceleration**: Ensure that hardware acceleration is enabled in the browser for optimal performance.
+
+## 2. TensorFlow.js
+
+- **Model Size**: Use the smallest TensorFlow.js model that meets your accuracy requirements.
+- **Web Workers**: For heavy processing, move the TensorFlow.js logic to a Web Worker to avoid blocking the main thread.
+- **WebGL Backend**: Ensure that the WebGL backend is used for TensorFlow.js, as it provides the best performance.
