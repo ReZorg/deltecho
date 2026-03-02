@@ -29,7 +29,10 @@ const Network = _Network as any;
 const Zap = _Zap as any;
 const User = _User as any;
 import { Live2DAvatar } from "../../AICompanionHub/Live2DAvatar";
-import type { Live2DAvatarController, EmotionalVector } from "../../AICompanionHub/Live2DAvatar";
+import type {
+  Live2DAvatarController,
+  EmotionalVector,
+} from "../../AICompanionHub/Live2DAvatar";
 import styles from "./DeepTreeEchoHub.module.scss";
 import classNames from "classnames";
 
@@ -398,7 +401,9 @@ class DTESimulation {
     };
 
     // Generate thought based on current state
-    const thoughts = cognitiveThoughts[this.currentState] || [`Transitioning from ${oldState} to ${this.currentState}`];
+    const thoughts = cognitiveThoughts[this.currentState] || [
+      `Transitioning from ${oldState} to ${this.currentState}`,
+    ];
     const thought = thoughts[Math.floor(Math.random() * thoughts.length)];
     this.generateThought(thought, Math.random() > 0.6 ? "insight" : "thought");
 
@@ -536,17 +541,23 @@ const DeepTreeEchoHub: React.FC = () => {
   };
 
   // Avatar state - derive emotional vector from simulation state
-  const [avatarController, setAvatarController] = useState<Live2DAvatarController | null>(null);
+  const [avatarController, setAvatarController] =
+    useState<Live2DAvatarController | null>(null);
   const [avatarLoaded, setAvatarLoaded] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
 
   const avatarEmotionalState: EmotionalVector = {
     joy: simulationState.currentState === "Novel Insights" ? 0.8 : 0.3,
-    interest: simulationState.currentState === "Pattern Recognition" ? 0.9 : 0.5,
-    surprise: simulationState.currentState === "External Validation Triggered" ? 0.7 : 0.1,
+    interest:
+      simulationState.currentState === "Pattern Recognition" ? 0.9 : 0.5,
+    surprise:
+      simulationState.currentState === "External Validation Triggered"
+        ? 0.7
+        : 0.1,
     sadness: simulationState.currentState === "Self-Sealing Loop" ? 0.4 : 0.0,
     excitement: simulationState.currentState === "Synthesis Phase" ? 0.8 : 0.3,
-    thinking: simulationState.currentState === "Recursive Expansion" ? 0.9 : 0.2,
+    thinking:
+      simulationState.currentState === "Recursive Expansion" ? 0.9 : 0.2,
   };
 
   // Trigger avatar expressions when simulation state changes
@@ -564,7 +575,9 @@ const DeepTreeEchoHub: React.FC = () => {
       "Self-Reference Point": ["contemplative", "idle"],
       "Knowledge Integration": ["empathetic", "nodding"],
     };
-    const [expression, motion] = stateToExpression[simulationState.currentState] || ["neutral", "idle"];
+    const [expression, motion] = stateToExpression[
+      simulationState.currentState
+    ] || ["neutral", "idle"];
     avatarController.setExpression(expression as any, 0.7);
     avatarController.playMotion(motion as any);
   }, [simulationState.currentState, avatarController, avatarLoaded]);
@@ -937,17 +950,29 @@ const DeepTreeEchoHub: React.FC = () => {
               <div className={styles.avatar_state_info}>
                 <div className={styles.state_row}>
                   <span className={styles.label}>Current State</span>
-                  <span className={styles.value}>{simulationState.currentState}</span>
+                  <span className={styles.value}>
+                    {simulationState.currentState}
+                  </span>
                 </div>
                 <div className={styles.state_row}>
                   <span className={styles.label}>Recursion Level</span>
-                  <span className={styles.value}>{simulationState.recursionLevel}</span>
+                  <span className={styles.value}>
+                    {simulationState.recursionLevel}
+                  </span>
                 </div>
                 <div className={styles.state_row}>
                   <span className={styles.label}>Steps Taken</span>
-                  <span className={styles.value}>{simulationState.stepsTaken}</span>
+                  <span className={styles.value}>
+                    {simulationState.stepsTaken}
+                  </span>
                 </div>
-                <h3 style={{ marginTop: "1rem", color: "#9ca3af", fontSize: "0.875rem" }}>
+                <h3
+                  style={{
+                    marginTop: "1rem",
+                    color: "#9ca3af",
+                    fontSize: "0.875rem",
+                  }}
+                >
                   Emotional Vector
                 </h3>
                 {Object.entries(avatarEmotionalState).map(([key, val]) => (
@@ -959,13 +984,26 @@ const DeepTreeEchoHub: React.FC = () => {
                         style={{ width: `${(Number(val) || 0) * 100}%` }}
                       />
                     </div>
-                    <span className={styles.emotion_value}>{(Number(val) || 0).toFixed(1)}</span>
+                    <span className={styles.emotion_value}>
+                      {(Number(val) || 0).toFixed(1)}
+                    </span>
                   </div>
                 ))}
               </div>
               {!isConnected && (
-                <div className={styles.sim_controls} style={{ position: "static", background: "none", marginTop: "1rem" }}>
-                  <button type="button" onClick={toggleAutoRun} title={autoRun ? "Pause" : "Auto Run"}>
+                <div
+                  className={styles.sim_controls}
+                  style={{
+                    position: "static",
+                    background: "none",
+                    marginTop: "1rem",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={toggleAutoRun}
+                    title={autoRun ? "Pause" : "Auto Run"}
+                  >
                     {autoRun ? <Pause size={16} /> : <Play size={16} />}
                   </button>
                   <button type="button" onClick={stepSimulation} title="Step">

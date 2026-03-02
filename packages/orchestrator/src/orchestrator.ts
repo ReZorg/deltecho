@@ -34,11 +34,7 @@ import {
 import { AARSystem, AARConfig, AARProcessingResult } from "./aar/index.js";
 import { IPCMessageType } from "@deltecho/ipc";
 import { registerCognitiveHandlers } from "./ipc/cognitive-handlers.js";
-import {
-  SessionManager,
-  SessionManagerConfig,
-  FileSessionPersistence,
-} from "./agents/index.js";
+import { SessionManager, FileSessionPersistence } from "./agents/index.js";
 
 const log = getLogger("deep-tree-echo-orchestrator/Orchestrator");
 
@@ -463,7 +459,7 @@ export class Orchestrator {
           message.fromId,
           isGroup,
         );
-        
+
         // Add user message to session history
         if (message.text) {
           session.addUserMessage(message.text);
@@ -487,7 +483,7 @@ export class Orchestrator {
           session.addAssistantMessage(response);
           await session.persist();
         }
-        
+
         // Send response back to the chat
         await this.deltachatInterface.sendMessage(accountId, chatId, response);
       }
@@ -697,7 +693,11 @@ export class Orchestrator {
       switch (targetTier) {
         case "MEMBRANE":
           if (this.doubleMembraneIntegration?.isRunning()) {
-            response = await this.processWithMembrane(messageText, chatId, session);
+            response = await this.processWithMembrane(
+              messageText,
+              chatId,
+              session,
+            );
             this.processingStats.membraneTierMessages++;
           } else {
             log.warn(
@@ -716,7 +716,13 @@ export class Orchestrator {
             log.warn(
               "SYS6 tier requested but not available, falling back to BASIC",
             );
-            response = await this.processWithBasic(messageText, chatId, msgId, aarResult, session);
+            response = await this.processWithBasic(
+              messageText,
+              chatId,
+              msgId,
+              aarResult,
+              session,
+            );
             this.processingStats.basicTierMessages++;
           }
           break;
@@ -1348,7 +1354,7 @@ ${response.body}`;
   } {
     const sys6State = this.sys6Bridge?.getState();
     const sessionStats = this.sessionManager?.getStats();
-    
+
     return {
       tierMode: this.config.cognitiveTierMode,
       sys6: this.sys6Bridge

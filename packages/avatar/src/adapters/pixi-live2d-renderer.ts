@@ -160,10 +160,10 @@ export class PixiLive2DRenderer implements ICubismRenderer {
    */
   private async waitForCubismCore(timeoutMs = 10000): Promise<void> {
     const start = Date.now();
-    while (!((window as any).Live2DCubismCore)) {
+    while (!(window as any).Live2DCubismCore) {
       if (Date.now() - start > timeoutMs) {
         throw new Error(
-          "Live2D Cubism Core SDK not loaded. Ensure live2dcubismcore.min.js is included before the bundle."
+          "Live2D Cubism Core SDK not loaded. Ensure live2dcubismcore.min.js is included before the bundle.",
         );
       }
       await new Promise((resolve) => setTimeout(resolve, 100));

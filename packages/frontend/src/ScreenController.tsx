@@ -186,7 +186,9 @@ export default class ScreenController extends Component {
         if (attempt < 5) {
           const delay = Math.min(500 * Math.pow(2, attempt), 8000);
           log.warn(
-            `settings load failed (attempt ${attempt + 1}), retrying in ${delay}ms`,
+            `settings load failed (attempt ${
+              attempt + 1
+            }), retrying in ${delay}ms`,
             err,
           );
           setTimeout(() => loadSettingsWithRetry(attempt + 1), delay);

@@ -279,7 +279,6 @@ If Live2D fails to load:
 - [Chat Integration Analysis](./CHAT_INTEGRATION_ANALYSIS.md)
 - [Avatar Package Documentation](./packages/avatar/README.md)
 
-
 ---
 
 # New Integration (Post-Refactor)
