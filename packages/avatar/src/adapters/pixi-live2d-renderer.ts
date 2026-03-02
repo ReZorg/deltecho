@@ -258,11 +258,16 @@ export class PixiLive2DRenderer implements ICubismRenderer {
     // @pixi/unsafe-eval replaces this with pre-compiled shader functions.
     await import("@pixi/unsafe-eval");
 
-    // Dynamically import PixiJS and pixi-live2d-display-lipsyncpatch
+    // Dynamically import PixiJS and pixi-live2d-display-lipsyncpatch/cubism4.
+    // IMPORTANT: We import the /cubism4 sub-export instead of the main entry
+    // because the main entry includes Cubism 2 support which throws:
+    //   "Could not find Cubism 2 runtime. This plugin requires live2d.min.js"
+    // at module level if window.Live2D is not defined. Since we only use
+    // Cubism 4 models (.model3.json), the cubism4-only build is sufficient.
     const [{ Application }, { Live2DModel: Live2DModelClass }] =
       await Promise.all([
         import("pixi.js"),
-        import("pixi-live2d-display-lipsyncpatch"),
+        import("pixi-live2d-display-lipsyncpatch/cubism4"),
       ]);
 
     // Get or create canvas element
@@ -337,9 +342,9 @@ export class PixiLive2DRenderer implements ICubismRenderer {
       throw new Error("Renderer not initialized");
     }
 
-    // Dynamically import Live2DModel
+    // Dynamically import Live2DModel (cubism4-only build)
     const { Live2DModel: Live2DModelClass } = await import(
-      "pixi-live2d-display-lipsyncpatch"
+      "pixi-live2d-display-lipsyncpatch/cubism4"
     );
 
     // Dispose existing model
