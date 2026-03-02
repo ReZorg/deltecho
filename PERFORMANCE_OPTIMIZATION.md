@@ -94,7 +94,6 @@ We're working on:
 - [ ] WASM backend option
 - [ ] Progressive loading based on usage patterns
 
-
 ---
 
 # New Performance Considerations (Post-Refactor)

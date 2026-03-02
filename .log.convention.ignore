@@ -17,9 +17,14 @@ test_exports.ts
 
 # CLI tools and bots (console output is expected)
 bin/deltecho-bot.ts
+bin/deploy-optimization-agents.ts
 deltecho-bot-smol.ts
 packages/discord/src/bot.ts
 packages/telegram/src/bot.ts
+temp-agent-script/
+
+# Cloudflare worker (serverless logging)
+packages/target-browser/cloudflare/
 
 # Voice handlers (debug logging)
 packages/discord/src/voice/

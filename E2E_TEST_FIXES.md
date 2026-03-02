@@ -233,7 +233,6 @@ test("should load cognitive configuration from settings", async ({ page }) => {
 5. `packages/e2e-tests/tests/deep-tree-echo.spec.ts` - Add skip conditions
 6. `packages/e2e-tests/tests/deep-tree-echo-chat.spec.ts` - Add skip conditions
 
-
 ---
 
 # New E2E Test Fixes (Post-Refactor)
@@ -244,15 +243,15 @@ This section provides analysis and fixes for common end-to-end (E2E) test failur
 
 - **Symptom**: E2E tests pass intermittently.
 - **Root Cause**: This can be caused by a variety of factors, including network latency, timing issues, and race conditions.
-- **Fix**: 
-    - Increase timeouts for asynchronous operations.
-    - Use explicit waits to ensure that elements are present before interacting with them.
-    - Mock out network requests to eliminate network latency as a factor.
+- **Fix**:
+  - Increase timeouts for asynchronous operations.
+  - Use explicit waits to ensure that elements are present before interacting with them.
+  - Mock out network requests to eliminate network latency as a factor.
 
 ## 2. Test Failures
 
 - **Symptom**: E2E tests consistently fail.
 - **Root Cause**: This is usually caused by a bug in the application code or a change in the application's behavior that is not reflected in the tests.
 - **Fix**:
-    - Debug the failing test to identify the root cause.
-    - Fix the bug in the application code or update the test to reflect the new behavior.
+  - Debug the failing test to identify the root cause.
+  - Fix the bug in the application code or update the test to reflect the new behavior.

@@ -22,12 +22,21 @@ import {
   afterEach,
   jest,
 } from "@jest/globals";
-import { Orchestrator, type OrchestratorConfig, type CognitiveTierMode } from "../orchestrator.js";
+import {
+  Orchestrator,
+  type OrchestratorConfig,
+  type CognitiveTierMode,
+} from "../orchestrator.js";
 
 // ─── Module mocks ─────────────────────────────────────────────────────────────
 
 jest.mock("deep-tree-echo-core", () => ({
-  getLogger: () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() }),
+  getLogger: () => ({
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  }),
   LLMService: jest.fn().mockImplementation(() => ({
     generateFullParallelResponse: jest
       .fn<() => Promise<{ integratedResponse: string }>>()
@@ -41,12 +50,26 @@ jest.mock("deep-tree-echo-core", () => ({
   })),
   PersonaCore: jest.fn().mockImplementation(() => ({
     getPersonality: jest.fn().mockReturnValue("Deltecho cognitive persona"),
-    getEmotionalState: jest.fn().mockReturnValue({ joy: 0.3, sadness: 0, anger: 0, fear: 0, surprise: 0, disgust: 0, contempt: 0, interest: 0.2 }),
+    getEmotionalState: jest.fn().mockReturnValue({
+      joy: 0.3,
+      sadness: 0,
+      anger: 0,
+      fear: 0,
+      surprise: 0,
+      disgust: 0,
+      contempt: 0,
+      interest: 0.2,
+    }),
     getDominantEmotion: jest
       .fn()
       .mockReturnValue({ emotion: "curiosity", intensity: 0.7 }),
     updateEmotionalState: jest.fn(),
-    getCognitiveState: jest.fn().mockReturnValue({ creativity: 0.6, analyticalDepth: 0.5, empathy: 0.7, curiosity: 0.6 }),
+    getCognitiveState: jest.fn().mockReturnValue({
+      creativity: 0.6,
+      analyticalDepth: 0.5,
+      empathy: 0.7,
+      curiosity: 0.6,
+    }),
     getPreferences: jest.fn().mockReturnValue({}),
   })),
   InMemoryStorage: jest.fn().mockImplementation(() => ({})),
@@ -172,7 +195,9 @@ jest.mock("../agents/index.js", () => ({
   AgentCoordinator: jest.fn().mockImplementation(() => ({
     start: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
     stop: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-    coordinate: jest.fn<() => Promise<string>>().mockResolvedValue("coordinated"),
+    coordinate: jest
+      .fn<() => Promise<string>>()
+      .mockResolvedValue("coordinated"),
   })),
 }));
 
@@ -194,7 +219,9 @@ jest.mock("../telemetry/TelemetryMonitor.js", () => ({
 
 // ─── Test helpers ─────────────────────────────────────────────────────────────
 
-function makeConfig(overrides: Partial<OrchestratorConfig> = {}): Partial<OrchestratorConfig> {
+function makeConfig(
+  overrides: Partial<OrchestratorConfig> = {},
+): Partial<OrchestratorConfig> {
   return {
     enableDeltaChat: false,
     enableDovecot: false,
@@ -217,13 +244,16 @@ function makeOrchestrator(overrides: Partial<OrchestratorConfig> = {}) {
 // ─── Test suites ──────────────────────────────────────────────────────────────
 
 describe("deltecho Pipeline Integration", () => {
-
   // ── 1. Orchestrator lifecycle ──────────────────────────────────────────────
   describe("Orchestrator lifecycle", () => {
     let orch: Orchestrator;
 
-    beforeEach(() => { orch = makeOrchestrator(); });
-    afterEach(async () => { await orch.stop().catch(() => {}); });
+    beforeEach(() => {
+      orch = makeOrchestrator();
+    });
+    afterEach(async () => {
+      await orch.stop().catch(() => {});
+    });
 
     it("constructs without throwing", () => {
       expect(orch).toBeInstanceOf(Orchestrator);
@@ -258,7 +288,13 @@ describe("deltecho Pipeline Integration", () => {
 
   // ── 2. Cognitive tier mode management ─────────────────────────────────────
   describe("Cognitive tier mode management", () => {
-    const tiers: CognitiveTierMode[] = ["BASIC", "SYS6", "MEMBRANE", "ADAPTIVE", "FULL"];
+    const tiers: CognitiveTierMode[] = [
+      "BASIC",
+      "SYS6",
+      "MEMBRANE",
+      "ADAPTIVE",
+      "FULL",
+    ];
 
     it("defaults to BASIC when configured as BASIC", () => {
       const orch = makeOrchestrator({ cognitiveTierMode: "BASIC" });
@@ -300,7 +336,9 @@ describe("deltecho Pipeline Integration", () => {
       orch = makeOrchestrator();
       await orch.start();
     });
-    afterEach(async () => { await orch.stop().catch(() => {}); });
+    afterEach(async () => {
+      await orch.stop().catch(() => {});
+    });
 
     it("getProcessingStats returns a valid stats object", () => {
       const stats = orch.getProcessingStats();
@@ -330,7 +368,9 @@ describe("deltecho Pipeline Integration", () => {
       orch = makeOrchestrator();
       await orch.start();
     });
-    afterEach(async () => { await orch.stop().catch(() => {}); });
+    afterEach(async () => {
+      await orch.stop().catch(() => {});
+    });
 
     it("getCognitiveSystemStatus returns a valid status object", () => {
       const status = orch.getCognitiveSystemStatus();
@@ -374,7 +414,10 @@ describe("deltecho Pipeline Integration", () => {
     });
 
     it("getSys6Bridge returns the bridge instance when Sys6 is enabled", async () => {
-      const orch = makeOrchestrator({ enableSys6: true, cognitiveTierMode: "SYS6" });
+      const orch = makeOrchestrator({
+        enableSys6: true,
+        cognitiveTierMode: "SYS6",
+      });
       await orch.start();
       try {
         expect(orch.getSys6Bridge()).toBeDefined();
@@ -420,7 +463,10 @@ describe("deltecho Pipeline Integration", () => {
     });
 
     it("getDoubleMembraneIntegration returns instance when enabled", async () => {
-      const orch = makeOrchestrator({ enableDoubleMembrane: true, cognitiveTierMode: "MEMBRANE" });
+      const orch = makeOrchestrator({
+        enableDoubleMembrane: true,
+        cognitiveTierMode: "MEMBRANE",
+      });
       await orch.start();
       try {
         expect(orch.getDoubleMembraneIntegration()).toBeDefined();
@@ -437,7 +483,7 @@ describe("deltecho Pipeline Integration", () => {
       await orch.start();
       try {
         expect(() =>
-          orch.configureApiKeys({ openai: "sk-test", anthropic: "ant-test" })
+          orch.configureApiKeys({ openai: "sk-test", anthropic: "ant-test" }),
         ).not.toThrow();
       } finally {
         await orch.stop().catch(() => {});
@@ -449,7 +495,10 @@ describe("deltecho Pipeline Integration", () => {
   describe("Multiple orchestrator instances", () => {
     it("two orchestrators start and stop independently", async () => {
       const o1 = makeOrchestrator({ cognitiveTierMode: "BASIC" });
-      const o2 = makeOrchestrator({ cognitiveTierMode: "SYS6", enableSys6: true });
+      const o2 = makeOrchestrator({
+        cognitiveTierMode: "SYS6",
+        enableSys6: true,
+      });
       await Promise.all([o1.start(), o2.start()]);
       try {
         expect(o1.isRunning()).toBe(true);
@@ -457,7 +506,10 @@ describe("deltecho Pipeline Integration", () => {
         expect(o1.getCognitiveTierMode()).toBe("BASIC");
         expect(o2.getCognitiveTierMode()).toBe("SYS6");
       } finally {
-        await Promise.all([o1.stop().catch(() => {}), o2.stop().catch(() => {})]);
+        await Promise.all([
+          o1.stop().catch(() => {}),
+          o2.stop().catch(() => {}),
+        ]);
       }
     });
   });
@@ -468,7 +520,14 @@ describe("deltecho Pipeline Integration", () => {
       const orch = makeOrchestrator({ cognitiveTierMode: "BASIC" });
       await orch.start();
       try {
-        const tiers: CognitiveTierMode[] = ["BASIC", "SYS6", "MEMBRANE", "ADAPTIVE", "FULL", "BASIC"];
+        const tiers: CognitiveTierMode[] = [
+          "BASIC",
+          "SYS6",
+          "MEMBRANE",
+          "ADAPTIVE",
+          "FULL",
+          "BASIC",
+        ];
         for (const tier of tiers) {
           orch.setCognitiveTierMode(tier);
           expect(orch.getCognitiveTierMode()).toBe(tier);

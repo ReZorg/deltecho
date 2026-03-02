@@ -56,8 +56,8 @@ This directory contains the artifacts for deploying the `deltecho` cognitive cha
 
 ## Architecture
 
--   **`Dockerfile.cloudflare`**: A multi-stage Dockerfile that builds the self-contained `server.js` and packages it into a minimal Node.js image with the `deltachat-rpc-server` binary.
--   **`packages/target-browser/wrangler.jsonc`**: Configures the Cloudflare Worker, the container binding, and Durable Objects for state.
--   **`packages/target-browser/cloudflare/worker.ts`**: The Cloudflare Worker entrypoint that proxies requests to the running container.
--   **`.env.template`**: A template for the required environment variables and secrets.
--   **`deploy-cloudflare.sh`**: A convenience script to automate the deployment process.
+- **`Dockerfile.cloudflare`**: A multi-stage Dockerfile that builds the self-contained `server.js` and packages it into a minimal Node.js image with the `deltachat-rpc-server` binary.
+- **`packages/target-browser/wrangler.jsonc`**: Configures the Cloudflare Worker, the container binding, and Durable Objects for state.
+- **`packages/target-browser/cloudflare/worker.ts`**: The Cloudflare Worker entrypoint that proxies requests to the running container.
+- **`.env.template`**: A template for the required environment variables and secrets.
+- **`deploy-cloudflare.sh`**: A convenience script to automate the deployment process.

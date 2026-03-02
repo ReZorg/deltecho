@@ -62,17 +62,14 @@ export class AutonomousSession {
   private persistence?: SessionPersistence;
   private isDirty: boolean = false;
 
-  constructor(
-    context: SessionContext,
-    persistence?: SessionPersistence,
-  ) {
+  constructor(context: SessionContext, persistence?: SessionPersistence) {
     this.sessionId = AutonomousSession.generateSessionId(
       context.accountId,
       context.chatId,
     );
     this.context = context;
     this.persistence = persistence;
-    
+
     log.debug(`Created session ${this.sessionId}`, {
       accountId: context.accountId,
       chatId: context.chatId,
@@ -105,10 +102,7 @@ export class AutonomousSession {
         const persisted = await persistence.load(sessionId);
         if (persisted) {
           log.info(`Restored session ${sessionId} from persistence`);
-          const session = new AutonomousSession(
-            persisted.context,
-            persistence,
-          );
+          const session = new AutonomousSession(persisted.context, persistence);
           session.conversationHistory = persisted.conversationHistory;
           return session;
         }
@@ -168,7 +162,7 @@ export class AutonomousSession {
     this.context.messageCount++;
     this.context.lastActivityAt = Date.now();
     this.isDirty = true;
-    
+
     log.debug(`User message added to ${this.sessionId}`, {
       messageCount: this.context.messageCount,
     });
@@ -185,7 +179,7 @@ export class AutonomousSession {
     });
     this.context.lastActivityAt = Date.now();
     this.isDirty = true;
-    
+
     log.debug(`Assistant message added to ${this.sessionId}`);
   }
 
@@ -237,10 +231,10 @@ export class AutonomousSession {
         context: this.context,
         conversationHistory: this.conversationHistory,
       };
-      
+
       await this.persistence.save(this.sessionId, data);
       this.isDirty = false;
-      
+
       log.debug(`Session ${this.sessionId} persisted`);
     } catch (error) {
       log.error(`Failed to persist session ${this.sessionId}:`, error);
@@ -285,7 +279,7 @@ export class AutonomousSession {
       const removed = this.conversationHistory.length - maxMessages;
       this.conversationHistory = this.conversationHistory.slice(-maxMessages);
       this.isDirty = true;
-      
+
       log.debug(`Trimmed ${removed} messages from ${this.sessionId}`);
     }
   }

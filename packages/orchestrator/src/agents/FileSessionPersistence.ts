@@ -28,8 +28,7 @@ export class FileSessionPersistence implements SessionPersistence {
       );
     }
     this.sessionDir =
-      sessionDir ||
-      path.join(homeDir!, ".deep-tree-echo", "sessions");
+      sessionDir || path.join(homeDir!, ".deep-tree-echo", "sessions");
   }
 
   /**
