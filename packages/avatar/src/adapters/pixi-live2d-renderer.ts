@@ -11,6 +11,11 @@
  * which interacts badly with console.log interceptors (DeltaChat error
  * boundary, browser extensions, etc.). The fix uses fromSync() with
  * event-based loading and provides a safe noop logger to the framework.
+ *
+ * FIXED: Resolved "Current environment does not allow unsafe-eval" error
+ * caused by PixiJS v7's ShaderSystem using new Function() for shader
+ * compilation. The CSP policy blocks unsafe-eval, so we import
+ * @pixi/unsafe-eval which patches PixiJS to use pre-compiled shaders.
  */
 
 import type { Application, Container } from "pixi.js";
@@ -246,6 +251,12 @@ export class PixiLive2DRenderer implements ICubismRenderer {
 
     // Patch Cubism startup to prevent console.log recursion crash
     this.patchCubismStartup();
+
+    // Import @pixi/unsafe-eval BEFORE pixi.js to patch the ShaderSystem.
+    // Without this, PixiJS v7 uses new Function() for shader compilation,
+    // which is blocked by the CSP policy (script-src 'self' 'wasm-unsafe-eval').
+    // @pixi/unsafe-eval replaces this with pre-compiled shader functions.
+    await import("@pixi/unsafe-eval");
 
     // Dynamically import PixiJS and pixi-live2d-display-lipsyncpatch
     const [{ Application }, { Live2DModel: Live2DModelClass }] =
