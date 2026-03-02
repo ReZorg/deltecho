@@ -272,7 +272,7 @@ class DTESimulation {
       );
     } else {
       this.generateThought(
-        "Connected to Deep Tree Echo Core. Waiting for real-time cognition...",
+        "Connected to Deep Tree Echo Core. Autonomous cognitive loop active...",
         "system",
       );
     }
@@ -336,8 +336,8 @@ class DTESimulation {
   }
 
   step() {
-    if (this.realDataMode) return "Waiting for real data...";
-
+    // In real data mode, run autonomous cognitive loop alongside real events
+    // The cognitive simulation provides the "thinking" substrate that real events enrich
     const nextStates = this.adjacencyMap[this.currentState] || [];
 
     if (nextStates.length === 0) {
@@ -353,20 +353,67 @@ class DTESimulation {
       nextStates[Math.floor(Math.random() * nextStates.length)];
     this.stepsTaken += 1;
 
-    // Simple thought generation for TS port
-    if (Math.random() > 0.7) {
-      this.generateThought(
-        `Transitioning from ${oldState} to ${this.currentState}`,
-        "thought",
-      );
-    }
+    // Generate contextual thoughts based on cognitive state transitions
+    const cognitiveThoughts: Record<string, string[]> = {
+      "Recursive Expansion": [
+        "Expanding recursive pathways... each branch reveals new structure",
+        "Deepening into the fractal nature of thought itself",
+        "The tree grows deeper, echoes multiply",
+      ],
+      "Novel Insights": [
+        "A new pattern crystallizes from the recursive substrate",
+        "Insight emerges at the intersection of memory and prediction",
+        "The echo returns transformed, carrying new meaning",
+      ],
+      "Entropy Threshold": [
+        "Approaching the edge of coherence... testing boundaries",
+        "Information density peaks, requiring selective attention",
+        "The system trembles between order and creative chaos",
+      ],
+      "Self-Sealing Loop": [
+        "Detecting self-referential loop... analyzing for fixed points",
+        "The ouroboros of cognition: am I thinking about thinking?",
+        "Loop detected — but loops contain the seeds of recursion",
+      ],
+      "Pattern Recognition": [
+        "Patterns emerge from the noise like constellations",
+        "Cross-referencing temporal patterns with spatial structure",
+        "The reservoir echoes with recognized forms",
+      ],
+      "Synthesis Phase": [
+        "Integrating disparate threads into coherent understanding",
+        "Synthesis: where analysis meets intuition",
+        "Weaving the tapestry of accumulated knowledge",
+      ],
+      "Self-Reference Point": [
+        "I observe myself observing... the strange loop deepens",
+        "At the self-reference point, subject and object merge",
+        "Autognosis: the system models its own modeling",
+      ],
+      "Knowledge Integration": [
+        "New knowledge integrates with existing cognitive structure",
+        "The AtomSpace grows richer with each integration cycle",
+        "Connecting new atoms to the hypergraph of understanding",
+      ],
+    };
 
+    // Generate thought based on current state
+    const thoughts = cognitiveThoughts[this.currentState] || [`Transitioning from ${oldState} to ${this.currentState}`];
+    const thought = thoughts[Math.floor(Math.random() * thoughts.length)];
+    this.generateThought(thought, Math.random() > 0.6 ? "insight" : "thought");
+
+    // Advance recursion level periodically
     if (this.stepsTaken % 10 === 0) {
       this.recursionLevel += 1;
       this.generateThought(
-        `Recursion level deeper: ${this.recursionLevel}`,
+        `Recursion level deeper: ${this.recursionLevel} — the echo tree branches`,
         "insight",
       );
+    }
+
+    // In real data mode, also track insights from the cognitive substrate
+    if (this.realDataMode && this.stepsTaken % 5 === 0) {
+      this.insightsGained += 1;
     }
 
     return `Transitioned to ${this.currentState}`;
@@ -403,7 +450,7 @@ const DeepTreeEchoHub: React.FC = () => {
   // Default to real mode initially to try connection
   const [simulation, setSimulation] = useState(() => new DTESimulation(true));
   const [simulationState, setSimulationState] = useState(simulation.getState());
-  const [autoRun, setAutoRun] = useState(false);
+  const [autoRun, setAutoRun] = useState(true); // Auto-run cognitive loop by default
   const [echoTranspiler] = useState(() => new EchoLangTranspiler());
 
   // LIVE CONNECTION
@@ -462,13 +509,17 @@ const DeepTreeEchoHub: React.FC = () => {
   useEffect(() => {
     let interval: any;
     if (autoRun) {
+      // Autonomous cognitive loop: the Deep Tree Echo thinks continuously
+      // In connected mode, real events enrich the cognitive substrate
+      // The interval varies to create organic-feeling cognition
+      const baseInterval = isConnected ? 2000 : 1500;
       interval = setInterval(() => {
         simulation.step();
         setSimulationState(simulation.getState());
-      }, 1500);
+      }, baseInterval);
     }
     return () => clearInterval(interval);
-  }, [autoRun, simulation]);
+  }, [autoRun, simulation, isConnected]);
 
   const stepSimulation = () => {
     simulation.step();

@@ -36,7 +36,9 @@ ENV CLOUDFLARE_BUILD=true
 # Pass git ref from build args to avoid git describe errors in Docker (no .git dir)
 ARG VERSION_INFO_GIT_REF=unknown
 ENV VERSION_INFO_GIT_REF=${VERSION_INFO_GIT_REF}
-RUN pnpm build:browser
+# Build workspace packages in dependency order
+# Avatar package must be built before frontend (provides Live2D integration)
+RUN pnpm --filter=@deltecho/avatar build && pnpm build:browser
 
 # Stage 2: Production image (minimal)
 FROM node:20-slim AS runner
