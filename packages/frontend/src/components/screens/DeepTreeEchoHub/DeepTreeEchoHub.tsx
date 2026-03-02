@@ -12,6 +12,7 @@ import {
   Terminal as _Terminal,
   Network as _Network,
   Zap as _Zap,
+  User as _User,
 } from "lucide-react";
 import { getAgentToolExecutor } from "../../DeepTreeEchoBot/AgentToolExecutor";
 
@@ -26,6 +27,9 @@ const Cpu = _Cpu as any;
 const Terminal = _Terminal as any;
 const Network = _Network as any;
 const Zap = _Zap as any;
+const User = _User as any;
+import { Live2DAvatar } from "../../AICompanionHub/Live2DAvatar";
+import type { Live2DAvatarController, EmotionalVector } from "../../AICompanionHub/Live2DAvatar";
 import styles from "./DeepTreeEchoHub.module.scss";
 import classNames from "classnames";
 
@@ -480,6 +484,39 @@ const DeepTreeEchoHub: React.FC = () => {
     setAutoRun(!autoRun);
   };
 
+  // Avatar state - derive emotional vector from simulation state
+  const [avatarController, setAvatarController] = useState<Live2DAvatarController | null>(null);
+  const [avatarLoaded, setAvatarLoaded] = useState(false);
+
+  const avatarEmotionalState: EmotionalVector = {
+    joy: simulationState.currentState === "Novel Insights" ? 0.8 : 0.3,
+    interest: simulationState.currentState === "Pattern Recognition" ? 0.9 : 0.5,
+    surprise: simulationState.currentState === "External Validation Triggered" ? 0.7 : 0.1,
+    sadness: simulationState.currentState === "Self-Sealing Loop" ? 0.4 : 0.0,
+    excitement: simulationState.currentState === "Synthesis Phase" ? 0.8 : 0.3,
+    thinking: simulationState.currentState === "Recursive Expansion" ? 0.9 : 0.2,
+  };
+
+  // Trigger avatar expressions when simulation state changes
+  useEffect(() => {
+    if (!avatarController || !avatarLoaded) return;
+    const stateToExpression: Record<string, [string, string]> = {
+      "Recursive Expansion": ["thinking", "thinking"],
+      "Novel Insights": ["happy", "nodding"],
+      "Entropy Threshold": ["focused", "idle"],
+      "Self-Sealing Loop": ["concerned", "shaking_head"],
+      "External Validation Triggered": ["surprised", "wave"],
+      "Evolutionary Pruning": ["focused", "idle"],
+      "Synthesis Phase": ["happy", "nodding"],
+      "Pattern Recognition": ["curious", "tilting_head"],
+      "Self-Reference Point": ["contemplative", "idle"],
+      "Knowledge Integration": ["empathetic", "nodding"],
+    };
+    const [expression, motion] = stateToExpression[simulationState.currentState] || ["neutral", "idle"];
+    avatarController.setExpression(expression as any, 0.7);
+    avatarController.playMotion(motion as any);
+  }, [simulationState.currentState, avatarController, avatarLoaded]);
+
   return (
     <div className={styles.hub_container}>
       {/* Sidebar */}
@@ -522,6 +559,17 @@ const DeepTreeEchoHub: React.FC = () => {
           >
             <Network size={20} />
             Neural Visualizer
+          </button>
+          <button
+            type="button"
+            className={classNames(
+              styles.tab_button,
+              activeTab === "avatar" && styles.active,
+            )}
+            onClick={() => setActiveTab("avatar")}
+          >
+            <User size={20} />
+            Live2D Avatar
           </button>
         </nav>
 
@@ -766,6 +814,101 @@ const DeepTreeEchoHub: React.FC = () => {
                   {isConnected ? "Hypergraph Projection" : "Prime Resonance"}
                 </span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "avatar" && (
+          <div className={styles.avatar_tab}>
+            <div className={classNames(styles.card, styles.avatar_card)}>
+              <div className={styles.card_header}>
+                <h2>
+                  <User size={20} /> Deep Tree Echo Avatar
+                </h2>
+                <div className={styles.avatar_status}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      fontSize: "0.875rem",
+                      color: avatarLoaded ? "#34d399" : "#f59e0b",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        backgroundColor: avatarLoaded ? "#34d399" : "#f59e0b",
+                      }}
+                    />
+                    {avatarLoaded ? "Live2D Active" : "Loading..."}
+                  </span>
+                </div>
+              </div>
+              <div className={styles.avatar_container}>
+                <Live2DAvatar
+                  model="miara"
+                  width={500}
+                  height={500}
+                  scale={0.25}
+                  emotionalState={avatarEmotionalState}
+                  onLoad={() => setAvatarLoaded(true)}
+                  onError={(err) => console.warn("Avatar error:", err)}
+                  onControllerReady={(ctrl) => setAvatarController(ctrl)}
+                  showLoading={true}
+                  showError={true}
+                />
+              </div>
+            </div>
+
+            <div className={styles.card}>
+              <h2>
+                <Cpu size={20} /> Cognitive State
+              </h2>
+              <div className={styles.avatar_state_info}>
+                <div className={styles.state_row}>
+                  <span className={styles.label}>Current State</span>
+                  <span className={styles.value}>{simulationState.currentState}</span>
+                </div>
+                <div className={styles.state_row}>
+                  <span className={styles.label}>Recursion Level</span>
+                  <span className={styles.value}>{simulationState.recursionLevel}</span>
+                </div>
+                <div className={styles.state_row}>
+                  <span className={styles.label}>Steps Taken</span>
+                  <span className={styles.value}>{simulationState.stepsTaken}</span>
+                </div>
+                <h3 style={{ marginTop: "1rem", color: "#9ca3af", fontSize: "0.875rem" }}>
+                  Emotional Vector
+                </h3>
+                {Object.entries(avatarEmotionalState).map(([key, val]) => (
+                  <div key={key} className={styles.emotion_bar}>
+                    <span className={styles.emotion_label}>{key}</span>
+                    <div className={styles.emotion_track}>
+                      <div
+                        className={styles.emotion_fill}
+                        style={{ width: `${(Number(val) || 0) * 100}%` }}
+                      />
+                    </div>
+                    <span className={styles.emotion_value}>{(Number(val) || 0).toFixed(1)}</span>
+                  </div>
+                ))}
+              </div>
+              {!isConnected && (
+                <div className={styles.sim_controls} style={{ position: "static", background: "none", marginTop: "1rem" }}>
+                  <button type="button" onClick={toggleAutoRun} title={autoRun ? "Pause" : "Auto Run"}>
+                    {autoRun ? <Pause size={16} /> : <Play size={16} />}
+                  </button>
+                  <button type="button" onClick={stepSimulation} title="Step">
+                    <RefreshCw size={16} />
+                  </button>
+                  <button type="button" onClick={resetSimulation} title="Reset">
+                    <RotateCcw size={16} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

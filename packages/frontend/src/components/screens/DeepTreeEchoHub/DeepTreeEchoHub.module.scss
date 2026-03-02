@@ -295,6 +295,100 @@ $border-color: #374151; // gray-700
   }
 }
 
+// Avatar tab styles
+.avatar_tab {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  height: 100%;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.avatar_card {
+  display: flex;
+  flex-direction: column;
+}
+
+.avatar_container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 0.5rem;
+  min-height: 400px;
+  position: relative;
+  overflow: hidden;
+}
+
+.avatar_status {
+  display: flex;
+  align-items: center;
+}
+
+.avatar_state_info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.state_row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid $border-color;
+
+  .label {
+    font-size: 0.875rem;
+    color: $text-muted;
+  }
+
+  .value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: white;
+  }
+}
+
+.emotion_bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.emotion_label {
+  font-size: 0.75rem;
+  color: $text-muted;
+  width: 70px;
+  text-transform: capitalize;
+}
+
+.emotion_track {
+  flex: 1;
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.emotion_fill {
+  height: 100%;
+  background: linear-gradient(90deg, $primary, #a5b4fc);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.emotion_value {
+  font-size: 0.75rem;
+  color: $text-muted;
+  width: 30px;
+  text-align: right;
+}
+
 .thought_stream {
   display: flex;
   flex-direction: column;

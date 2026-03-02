@@ -92,6 +92,11 @@ app.get("/", (req, res) => {
   }
 });
 
+// SPA fallback route for /live2d-avatar - serves main.html so the frontend can handle routing
+app.get("/live2d-avatar", authMiddleWare, (_req, res) => {
+  res.sendFile(join(DIST_DIR, "main.html"));
+});
+
 app.use(express.static(DIST_DIR));
 app.use("/locales", express.static(LOCALES_DIR));
 

@@ -25,6 +25,7 @@ import { InstantOnboardingProvider } from "./contexts/InstantOnboardingContext";
 import { SmallScreenModeMacOSTitleBar } from "./components/SmallScreenModeMacOSTitleBar";
 import DeepTreeEchoBot from "./components/chat/DeepTreeEchoBot";
 import AINeighborhoodDashboard from "./components/screens/AINeighborhoodDashboard/AINeighborhoodDashboard";
+import DeepTreeEchoHub from "./components/screens/DeepTreeEchoHub/DeepTreeEchoHub";
 
 import type { MemoryPersistenceLayer as _MemoryPersistenceLayer } from "./components/AICompanionHub/MemoryPersistenceLayer";
 
@@ -43,6 +44,7 @@ export enum Screens {
   DeleteAccount = "deleteAccount",
   NoAccountSelected = "noAccountSelected",
   AINeighborhood = "aiNeighborhood",
+  Live2DAvatar = "live2dAvatar",
 }
 
 const BREAKPOINT_FOR_SMALLSCREEN_MODE = 720;
@@ -89,9 +91,16 @@ export default class ScreenController extends Component {
   }
 
   private async startup() {
+    // Check if we're on the /live2d-avatar route
+    const isLive2DAvatarRoute = window.location.pathname === "/live2d-avatar";
+
     const lastLoggedInAccountId = await this._getLastUsedAccount();
     if (lastLoggedInAccountId) {
       await this.selectAccount(lastLoggedInAccountId);
+      // After account is selected, switch to Live2D Avatar screen if on that route
+      if (isLive2DAvatarRoute) {
+        this.changeScreen(Screens.Live2DAvatar);
+      }
     } else {
       const allAccountIds = await BackendRemote.rpc.getAllAccountIds();
       if (allAccountIds && allAccountIds.length > 0) {
@@ -347,6 +356,8 @@ export default class ScreenController extends Component {
         return <NoAccountSelectedScreen />;
       case Screens.AINeighborhood:
         return <AINeighborhoodDashboard />;
+      case Screens.Live2DAvatar:
+        return <DeepTreeEchoHub />;
       default:
         return null;
     }
