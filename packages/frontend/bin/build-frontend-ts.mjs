@@ -8,6 +8,29 @@ import { ESLint } from 'eslint'
 import { compile } from 'sass'
 
 /**
+ * esbuild plugin to patch pixi-live2d-display-lipsyncpatch.
+ * The library has a module-level check: `if (!window.Live2DCubismCore) throw ...`
+ * When esbuild inlines this into the bundle, the check runs at bundle parse time
+ * before the Cubism Core WASM has finished initializing asynchronously.
+ * This plugin converts the fatal throw into a deferred warning.
+ */
+const cubismPatchPlugin = {
+  name: 'cubism-patch',
+  setup(build) {
+    build.onLoad({ filter: /pixi-live2d-display-lipsyncpatch.*\.js$/ }, async (args) => {
+      let contents = await readFile(args.path, 'utf8')
+      // Replace the fatal throw with a console.warn - the actual check
+      // will happen at runtime when the model is loaded
+      contents = contents.replace(
+        /if\s*\(!window\.Live2DCubismCore\)\s*\{\s*throw new Error\([^)]+\);\s*\}/g,
+        `if (!window.Live2DCubismCore) { console.warn("[Live2D] Cubism 4 Core not yet loaded - will check again at model load time"); }`
+      )
+      return { contents, loader: 'js' }
+    })
+  },
+}
+
+/**
  * Helper method returning a bundle configuration which is shared amongst
  * different `esbuild` methods.
  *
@@ -16,7 +39,7 @@ import { compile } from 'sass'
 function config(options) {
   const { isProduction, isMinify, isWatch } = options
 
-  const plugins = [wasmPlugin, sassPlugin, inlineWorkerPlugin()]
+  const plugins = [cubismPatchPlugin, wasmPlugin, sassPlugin, inlineWorkerPlugin()]
   if (isWatch || isProduction) {
     // Make eslint optional as it affects build times significantly
     plugins.push(eslintPlugin)

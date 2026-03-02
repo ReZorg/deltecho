@@ -154,10 +154,39 @@ export class PixiLive2DRenderer implements ICubismRenderer {
     DEFAULT_MOTION_MAP;
 
   /**
+   * Wait for the Live2D Cubism Core WASM to be fully initialized.
+   * The Cubism Core SDK loads asynchronously via WebAssembly.instantiateStreaming.
+   * pixi-live2d-display checks window.Live2DCubismCore at import time.
+   */
+  private async waitForCubismCore(timeoutMs = 10000): Promise<void> {
+    const start = Date.now();
+    while (!((window as any).Live2DCubismCore)) {
+      if (Date.now() - start > timeoutMs) {
+        throw new Error(
+          "Live2D Cubism Core SDK not loaded. Ensure live2dcubismcore.min.js is included before the bundle."
+        );
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    // Also wait for WASM runtime initialization if .then() is available
+    const core = (window as any).Live2DCubismCore;
+    if (core && typeof core.then === "function") {
+      await new Promise<void>((resolve) => {
+        core.then(() => resolve());
+      });
+    }
+    console.log("[PixiLive2DRenderer] Cubism Core WASM ready");
+  }
+
+  /**
    * Initialize the renderer with configuration
    */
   async initialize(config: CubismAdapterConfig): Promise<void> {
     this.config = config as PixiLive2DConfig;
+
+    // Wait for Cubism Core WASM to be fully initialized before importing
+    // pixi-live2d-display, which checks window.Live2DCubismCore at module level
+    await this.waitForCubismCore();
 
     // Dynamically import PixiJS and pixi-live2d-display-lipsyncpatch
     const [{ Application }, { Live2DModel: Live2DModelClass }] =

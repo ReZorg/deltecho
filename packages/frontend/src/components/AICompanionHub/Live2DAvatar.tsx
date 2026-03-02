@@ -166,7 +166,7 @@ export const Live2DAvatar: React.FC<Live2DAvatarComponentProps> = ({
             return prev;
           });
         }
-      }, 10000); // 10 second timeout
+      }, 30000); // 30 second timeout (13MB texture may take time)
 
       try {
         // Dynamic import to avoid SSR issues
