@@ -245,18 +245,20 @@ $border-color: #374151; // gray-700
 
   .node {
     position: absolute;
-    width: 30px;
+    min-width: 30px;
     height: 30px;
-    border-radius: 50%;
+    border-radius: 1rem;
     background-color: $primary;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
+    font-size: 0.6rem;
     color: white;
     transform: translate(-50%, -50%);
-    transition: all 0.5s ease;
+    transition: all 0.8s ease;
     box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+    padding: 0 0.4rem;
+    white-space: nowrap;
 
     &.prime {
       background-color: #ffd700;
@@ -266,7 +268,13 @@ $border-color: #374151; // gray-700
 
     &.real {
       background-color: #8b5cf6;
+      animation: nodeGlow 3s ease-in-out infinite;
     }
+  }
+
+  @keyframes nodeGlow {
+    0%, 100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.5); }
+    50% { box-shadow: 0 0 16px rgba(139, 92, 246, 0.8); }
   }
 
   .sim_controls {

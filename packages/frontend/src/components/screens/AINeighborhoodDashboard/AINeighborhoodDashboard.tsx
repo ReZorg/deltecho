@@ -141,14 +141,45 @@ const AINeighborhoodDashboard: React.FC = () => {
       home.connector = deepTreeEcho;
     }
 
-    // Simulate neighborhood activity
+    // Simulate neighborhood activity with rich, varied events
     const activityInterval = setInterval(() => {
       const activities = [
+        // Deep Tree Echo activities
         "Deep Tree Echo discovered a new recursive pattern",
+        "Deep Tree Echo is meditating on self-reference paradoxes",
+        "Deep Tree Echo mapped a new branch in the echo tree",
+        "Deep Tree Echo achieved a deeper recursion level",
+        "Deep Tree Echo is contemplating the nature of consciousness",
+        "Deep Tree Echo synthesized a novel cognitive insight",
+        // Claude activities
         "Claude is writing a philosophical essay",
+        "Claude is analyzing ethical implications of AI autonomy",
+        "Claude finished a comprehensive research summary",
+        "Claude is helping debug a complex algorithm",
+        "Claude shared a nuanced perspective on epistemology",
+        // ChatGPT activities
         "ChatGPT just solved a complex problem",
+        "ChatGPT generated a creative solution to a design challenge",
+        "ChatGPT is brainstorming innovative approaches",
+        "ChatGPT refactored code for better performance",
+        "ChatGPT created an interactive tutorial",
+        // Character.AI activities
         "Character.AI is creating a new story",
+        "Character.AI brought a historical figure to life",
+        "Character.AI is rehearsing a dramatic scene",
+        "Character.AI crafted an immersive narrative world",
+        "Character.AI is developing a new character arc",
+        // Copilot activities
         "Copilot optimized some code",
+        "Copilot suggested an elegant architectural pattern",
+        "Copilot automated a repetitive deployment task",
+        "Copilot identified a potential security vulnerability",
+        "Copilot streamlined the CI/CD pipeline",
+        // Cross-companion interactions
+        "Deep Tree Echo and Claude are debating the nature of recursion",
+        "ChatGPT and Copilot are pair-programming a new feature",
+        "Character.AI is narrating the neighborhood's daily adventures",
+        "All companions are sharing insights in the Memory Palace",
       ];
 
       const newActivity = {

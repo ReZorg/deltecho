@@ -416,9 +416,80 @@ class DTESimulation {
       );
     }
 
-    // In real data mode, also track insights from the cognitive substrate
-    if (this.realDataMode && this.stepsTaken % 5 === 0) {
-      this.insightsGained += 1;
+    // In real data mode, generate synthetic knowledge atoms from cognitive transitions
+    // This populates the Neural Visualizer and Knowledge Atoms counter
+    // even when no external tool_execution or knowledge_stored events arrive
+    if (this.realDataMode) {
+      // Every 5 steps, crystallize a knowledge atom from the cognitive substrate
+      if (this.stepsTaken % 5 === 0) {
+        this.insightsGained += 1;
+
+        // Generate a synthetic knowledge node from the current cognitive state
+        const cognitiveAtoms: Record<string, string[][]> = {
+          "Recursive Expansion": [
+            ["RecursiveDepth", "FractalBranch"],
+            ["EchoTree", "RecursiveSubstrate"],
+            ["DepthFirst", "BranchExpansion"],
+          ],
+          "Novel Insights": [
+            ["InsightCrystal", "PatternSubstrate"],
+            ["NovelPattern", "PredictiveMemory"],
+            ["EmergentMeaning", "TransformedEcho"],
+          ],
+          "Entropy Threshold": [
+            ["EntropyBoundary", "CoherenceEdge"],
+            ["SelectiveAttention", "InformationDensity"],
+            ["OrderChaos", "CreativeThreshold"],
+          ],
+          "Self-Sealing Loop": [
+            ["SelfReference", "FixedPoint"],
+            ["Ouroboros", "MetaCognition"],
+            ["LoopSeed", "RecursionOrigin"],
+          ],
+          "Pattern Recognition": [
+            ["TemporalPattern", "SpatialStructure"],
+            ["ReservoirEcho", "RecognizedForm"],
+            ["Constellation", "NoiseSignal"],
+          ],
+          "Synthesis Phase": [
+            ["IntegratedThread", "CoherentUnderstanding"],
+            ["AnalysisIntuition", "SynthesisProduct"],
+            ["KnowledgeTapestry", "AccumulatedWisdom"],
+          ],
+          "Self-Reference Point": [
+            ["Observer", "Observed"],
+            ["StrangeLoop", "SubjectObject"],
+            ["Autognosis", "SelfModel"],
+          ],
+          "Knowledge Integration": [
+            ["NewKnowledge", "CognitiveStructure"],
+            ["AtomSpace", "IntegrationCycle"],
+            ["Hypergraph", "Understanding"],
+          ],
+        };
+
+        const atoms = cognitiveAtoms[this.currentState] || [["CognitiveNode", "Unknown"]];
+        const pair = atoms[Math.floor(Math.random() * atoms.length)];
+        pair.forEach((n) => this.realNodes.add(n));
+        this.realEdges.push({
+          from: pair[0],
+          to: pair[1],
+          type: this.currentState.replace(/\s+/g, ""),
+        });
+      }
+
+      // Prune old nodes if the graph gets too large (keep it visually clean)
+      if (this.realNodes.size > 24) {
+        const nodesArr = Array.from(this.realNodes);
+        // Remove oldest nodes (first added)
+        const toRemove = nodesArr.slice(0, nodesArr.length - 18);
+        toRemove.forEach((n) => this.realNodes.delete(n));
+        // Also prune edges referencing removed nodes
+        const remaining = this.realNodes;
+        this.realEdges = this.realEdges.filter(
+          (e) => remaining.has(e.from) && remaining.has(e.to),
+        );
+      }
     }
 
     return `Transitioned to ${this.currentState}`;
@@ -441,7 +512,9 @@ class DTESimulation {
       stepsTaken: this.stepsTaken,
       insightsGained: this.insightsGained,
       thoughtStream: [...this.thoughtStream],
-      nodeCount: this.realDataMode ? this.realNodes.size : this.states.length,
+      nodeCount: this.realDataMode
+        ? Math.max(this.realNodes.size, this.insightsGained)
+        : this.states.length,
       realNodes: Array.from(this.realNodes),
       realEdges: this.realEdges,
     };
@@ -810,44 +883,95 @@ const DeepTreeEchoHub: React.FC = () => {
             </div>
             <div className={styles.visualizer}>
               {isConnected ? (
-                // Live AtomSpace Visualization
+                // Live AtomSpace Visualization with edges
                 <>
                   {simulationState.realNodes &&
                   simulationState.realNodes.length === 0 ? (
                     <div className={styles.empty_state_msg}>
-                      Waiting for knowledge...
+                      Initializing cognitive substrate...
                     </div>
                   ) : (
-                    (simulationState.realNodes || []).map(
-                      (node: string, i: number) => (
-                        <div
-                          key={i}
-                          className={classNames(styles.node, styles.real)}
-                          style={{
-                            top: `${
+                    <>
+                      {/* SVG overlay for edges */}
+                      <svg
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          pointerEvents: "none",
+                          zIndex: 0,
+                        }}
+                      >
+                        {(simulationState.realEdges || []).map(
+                          (edge: any, idx: number) => {
+                            const nodes = simulationState.realNodes || [];
+                            const fromIdx = nodes.indexOf(edge.from);
+                            const toIdx = nodes.indexOf(edge.to);
+                            if (fromIdx === -1 || toIdx === -1) return null;
+                            const total = nodes.length;
+                            const fromX =
                               50 +
-                              30 *
-                                Math.sin(
-                                  i *
-                                    ((Math.PI * 2) /
-                                      (simulationState.realNodes || []).length),
-                                )
-                            }%`,
-                            left: `${
+                              30 * Math.cos(fromIdx * ((Math.PI * 2) / total));
+                            const fromY =
                               50 +
-                              30 *
-                                Math.cos(
-                                  i *
-                                    ((Math.PI * 2) /
-                                      (simulationState.realNodes || []).length),
-                                )
-                            }%`,
-                          }}
-                        >
-                          {node}
-                        </div>
-                      ),
-                    )
+                              30 * Math.sin(fromIdx * ((Math.PI * 2) / total));
+                            const toX =
+                              50 +
+                              30 * Math.cos(toIdx * ((Math.PI * 2) / total));
+                            const toY =
+                              50 +
+                              30 * Math.sin(toIdx * ((Math.PI * 2) / total));
+                            return (
+                              <line
+                                key={`edge-${idx}`}
+                                x1={`${fromX}%`}
+                                y1={`${fromY}%`}
+                                x2={`${toX}%`}
+                                y2={`${toY}%`}
+                                stroke="rgba(99, 102, 241, 0.4)"
+                                strokeWidth="1"
+                              />
+                            );
+                          },
+                        )}
+                      </svg>
+                      {/* Nodes */}
+                      {(simulationState.realNodes || []).map(
+                        (node: string, i: number) => (
+                          <div
+                            key={node}
+                            className={classNames(styles.node, styles.real)}
+                            style={{
+                              top: `${
+                                50 +
+                                30 *
+                                  Math.sin(
+                                    i *
+                                      ((Math.PI * 2) /
+                                        (simulationState.realNodes || [])
+                                          .length),
+                                  )
+                              }%`,
+                              left: `${
+                                50 +
+                                30 *
+                                  Math.cos(
+                                    i *
+                                      ((Math.PI * 2) /
+                                        (simulationState.realNodes || [])
+                                          .length),
+                                  )
+                              }%`,
+                              zIndex: 1,
+                            }}
+                          >
+                            {node}
+                          </div>
+                        ),
+                      )}
+                    </>
                   )}
                 </>
               ) : (
