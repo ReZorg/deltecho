@@ -315,43 +315,50 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
 
       // NoChatSelected also has this ID and class.
       id="message-list-and-composer"
-      className="message-list-and-composer"
+      className={`message-list-and-composer ${
+        settingsStore?.desktopSettings?.deepTreeEchoBotEnabled &&
+        settingsStore?.desktopSettings?.deepTreeEchoBotAvatarEnabled !== false
+          ? "with-avatar-panel"
+          : ""
+      }`}
       style={style}
       ref={conversationRef}
       onDrop={onDrop.bind({ props: { chat } })}
       onDragOver={onDragOver}
     >
+      <div className="message-list-and-composer__chat-column">
+        <div className="message-list-and-composer__message-list">
+          <RecoverableCrashScreen reset_on_change_key={chat.id}>
+            <ReactionsBarProvider>
+              <MessageList
+                accountId={accountId}
+                chat={chat}
+                refComposer={refComposer}
+              />
+            </ReactionsBarProvider>
+          </RecoverableCrashScreen>
+        </div>
+        <Composer
+          ref={refComposer}
+          selectedChat={chat}
+          isContactRequest={chat.isContactRequest}
+          isProtectionBroken={chat.isProtectionBroken}
+          regularMessageInputRef={regularMessageInputRef}
+          editMessageInputRef={editMessageInputRef}
+          draftState={draftState}
+          updateDraftText={updateDraftText}
+          onSelectReplyToShortcut={onSelectReplyToShortcut}
+          removeQuote={removeQuote}
+          addFileToDraft={addFileToDraft}
+          removeFile={removeFile}
+          clearDraftStateButKeepTextareaValue={
+            clearDraftStateButKeepTextareaValue
+          }
+        />
+      </div>
       {settingsStore?.desktopSettings?.deepTreeEchoBotEnabled &&
         settingsStore?.desktopSettings?.deepTreeEchoBotAvatarEnabled !==
           false && <DeepTreeEchoAvatarDisplay position="panel" />}
-      <div className="message-list-and-composer__message-list">
-        <RecoverableCrashScreen reset_on_change_key={chat.id}>
-          <ReactionsBarProvider>
-            <MessageList
-              accountId={accountId}
-              chat={chat}
-              refComposer={refComposer}
-            />
-          </ReactionsBarProvider>
-        </RecoverableCrashScreen>
-      </div>
-      <Composer
-        ref={refComposer}
-        selectedChat={chat}
-        isContactRequest={chat.isContactRequest}
-        isProtectionBroken={chat.isProtectionBroken}
-        regularMessageInputRef={regularMessageInputRef}
-        editMessageInputRef={editMessageInputRef}
-        draftState={draftState}
-        updateDraftText={updateDraftText}
-        onSelectReplyToShortcut={onSelectReplyToShortcut}
-        removeQuote={removeQuote}
-        addFileToDraft={addFileToDraft}
-        removeFile={removeFile}
-        clearDraftStateButKeepTextareaValue={
-          clearDraftStateButKeepTextareaValue
-        }
-      />
     </div>
   );
 }
