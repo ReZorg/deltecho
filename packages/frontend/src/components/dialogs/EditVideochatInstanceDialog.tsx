@@ -24,17 +24,17 @@ type RadioButtonValue = "disabled" | "custom" | "systemli" | "autistici";
 type Props = {
   onOk: (configValue: string) => void;
   settingsStore: SettingsStoreState;
+  /** Initial videochat instance value (replaces deprecated webrtc_instance) */
+  initialValue?: string;
 };
 
 export default function EditVideochatInstanceDialog({
   onClose,
   onOk,
-  settingsStore,
+  initialValue = "",
 }: DialogProps & Props) {
   const tx = useTranslationFunction();
-  const [configValue, setConfigValue] = useState(
-    settingsStore.settings["webrtc_instance"],
-  );
+  const [configValue, setConfigValue] = useState(initialValue);
   const [radioValue, setRadioValue] = useState<RadioButtonValue>(() => {
     if (configValue === "") {
       return "disabled";
@@ -53,7 +53,7 @@ export default function EditVideochatInstanceDialog({
 
   const onClickOk = () => {
     onClose();
-    onOk(configValue.trim()); // the trim is here to not save custom provider if it only contains whitespaces
+    onOk(configValue.trim());
   };
 
   const onChangeRadio = (value: string) => {
@@ -68,7 +68,7 @@ export default function EditVideochatInstanceDialog({
       newConfigValue = VIDEO_CHAT_INSTANCE_AUTISTICI;
       setRadioValue("autistici");
     } else {
-      newConfigValue = settingsStore.settings["webrtc_instance"];
+      newConfigValue = configValue;
       setRadioValue("custom");
     }
     setConfigValue(newConfigValue);
@@ -116,8 +116,8 @@ export default function EditVideochatInstanceDialog({
           <>
             <DialogContent paddingTop>
               <DeltaInput
-                key="custom_webrtc_instance"
-                id="custom_webrtc_instance"
+                key="custom_videochat_instance"
+                id="custom_videochat_instance"
                 value={configValue}
                 placeholder={tx("videochat_instance_placeholder")}
                 onChange={(

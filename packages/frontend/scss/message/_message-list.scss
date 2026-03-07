@@ -7,6 +7,7 @@
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+  position: relative; // Needed for floating avatar positioning
 
   // If you want to update this, don't forget to update
   // the `.background-preview` element as well.

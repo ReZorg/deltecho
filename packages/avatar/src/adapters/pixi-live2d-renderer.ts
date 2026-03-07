@@ -228,7 +228,7 @@ export class PixiLive2DRenderer implements ICubismRenderer {
       if (cubismCore?.Logging) {
         const origSetLogFunction = cubismCore.Logging.csmSetLogFunction;
         if (origSetLogFunction) {
-          cubismCore.Logging.csmSetLogFunction = function(fn: any) {
+          cubismCore.Logging.csmSetLogFunction = function(_fn: any) {
             // Replace any console.log reference with our safe version
             origSetLogFunction.call(this, safeLog);
           };
