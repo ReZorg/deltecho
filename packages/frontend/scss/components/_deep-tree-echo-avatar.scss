@@ -1,5 +1,10 @@
 /**
  * Styles for Deep Tree Echo Avatar Display
+ *
+ * Three position modes:
+ * - panel-avatar: Large display at top of chat window (primary mode)
+ * - floating-avatar: Small overlay in bottom-right corner
+ * - inline-avatar: Centered within its parent container
  */
 
 .deep-tree-echo-avatar-display {
@@ -9,16 +14,82 @@
   align-items: center;
   justify-content: center;
   background: transparent;
-  border-radius: 8px;
   overflow: hidden;
 
   &.inline-avatar {
     margin: 0 auto;
+    border-radius: 8px;
   }
 
+  // Panel mode: large avatar display at the top of the chat window
+  &.panel-avatar {
+    width: 100%;
+    height: 40vh;
+    min-height: 280px;
+    max-height: 500px;
+    flex-shrink: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(15, 15, 35, 0.95) 0%,
+      rgba(20, 20, 50, 0.9) 60%,
+      rgba(25, 25, 60, 0.7) 85%,
+      transparent 100%
+    );
+    border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+
+    // Ensure the Live2D canvas fills the panel
+    .live2d-avatar-container {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .live2d-avatar {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    // Loading state styling for panel mode
+    .live2d-loading {
+      background: radial-gradient(
+        ellipse at center,
+        rgba(30, 30, 63, 0.6) 0%,
+        transparent 70%
+      );
+    }
+
+    .live2d-loading-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: rgba(200, 200, 255, 0.8);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .live2d-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(99, 102, 241, 0.2);
+      border-top-color: rgba(99, 102, 241, 0.8);
+      border-radius: 50%;
+      animation: avatar-spin 1s linear infinite;
+    }
+
+    // Sprite fallback in panel mode should fill the space
+    .responsive-sprite-avatar {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain;
+    }
+  }
+
+  // Floating mode: small overlay circle
   &.floating-avatar {
     position: absolute;
-    bottom: 80px; // above the composer
+    bottom: 80px;
     right: 16px;
     z-index: 10;
     width: 180px;
@@ -38,10 +109,8 @@
       transform 0.3s ease,
       box-shadow 0.3s ease,
       opacity 0.3s ease;
-    // Allow clicks to pass through so messages are still clickable
     pointer-events: none;
 
-    // All child elements also pass through clicks
     * {
       pointer-events: none;
     }
@@ -100,6 +169,12 @@
   }
 }
 
+@keyframes avatar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes pulse {
   0%,
   100% {
@@ -113,10 +188,18 @@
 
 // Responsive design
 @media (max-width: 768px) {
-  .deep-tree-echo-avatar-display.floating-avatar {
-    width: 120px;
-    height: 120px;
-    bottom: 70px;
-    right: 10px;
+  .deep-tree-echo-avatar-display {
+    &.panel-avatar {
+      height: 30vh;
+      min-height: 200px;
+      max-height: 350px;
+    }
+
+    &.floating-avatar {
+      width: 120px;
+      height: 120px;
+      bottom: 70px;
+      right: 10px;
+    }
   }
 }

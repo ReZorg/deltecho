@@ -37,7 +37,7 @@ export interface DeepTreeEchoAvatarDisplayProps {
   /** Custom CSS class */
   className?: string;
   /** Position mode */
-  position?: "inline" | "floating";
+  position?: "inline" | "floating" | "panel";
   /** Callback when avatar is ready */
   onReady?: () => void;
 }
@@ -154,11 +154,15 @@ export const DeepTreeEchoAvatarDisplay: React.FC<
   const avatarContext = useDeepTreeEchoAvatarOptional();
 
   // Use context values if available, otherwise use props
-  const finalWidth = width ?? avatarContext?.state.config.width ?? 300;
-  const finalHeight = height ?? avatarContext?.state.config.height ?? 300;
-  const finalVisible = visible ?? avatarContext?.state.config.visible ?? true;
   const finalPosition =
     position ?? avatarContext?.state.config.position ?? "floating";
+  // Panel mode uses larger dimensions to fill the right side
+  const panelDefaults = { width: 600, height: 400 };
+  const defaultWidth = finalPosition === "panel" ? panelDefaults.width : 300;
+  const defaultHeight = finalPosition === "panel" ? panelDefaults.height : 300;
+  const finalWidth = width ?? avatarContext?.state.config.width ?? defaultWidth;
+  const finalHeight = height ?? avatarContext?.state.config.height ?? defaultHeight;
+  const finalVisible = visible ?? avatarContext?.state.config.visible ?? true;
   const processingState =
     propsProcessingState ??
     avatarContext?.state.processingState ??
@@ -254,9 +258,13 @@ export const DeepTreeEchoAvatarDisplay: React.FC<
     return null;
   }
 
-  const containerClass = `deep-tree-echo-avatar-display ${className} ${
-    finalPosition === "floating" ? "floating-avatar" : "inline-avatar"
-  }`;
+  const positionClass =
+    finalPosition === "panel"
+      ? "panel-avatar"
+      : finalPosition === "floating"
+        ? "floating-avatar"
+        : "inline-avatar";
+  const containerClass = `deep-tree-echo-avatar-display ${className} ${positionClass}`;
 
   return (
     <div className={containerClass}>
@@ -264,7 +272,7 @@ export const DeepTreeEchoAvatarDisplay: React.FC<
         model={avatarContext?.state.config.model ?? "miara"}
         width={finalWidth}
         height={finalHeight}
-        scale={0.25}
+        scale={finalPosition === "panel" ? 0.5 : 0.25}
         emotionalState={emotionalVector}
         audioLevel={audioLevel}
         isSpeaking={isSpeaking}

@@ -321,6 +321,9 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
       onDrop={onDrop.bind({ props: { chat } })}
       onDragOver={onDragOver}
     >
+      {settingsStore?.desktopSettings?.deepTreeEchoBotEnabled &&
+        settingsStore?.desktopSettings?.deepTreeEchoBotAvatarEnabled !==
+          false && <DeepTreeEchoAvatarDisplay position="panel" />}
       <div className="message-list-and-composer__message-list">
         <RecoverableCrashScreen reset_on_change_key={chat.id}>
           <ReactionsBarProvider>
@@ -349,9 +352,6 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
           clearDraftStateButKeepTextareaValue
         }
       />
-      {settingsStore?.desktopSettings?.deepTreeEchoBotEnabled &&
-        settingsStore?.desktopSettings?.deepTreeEchoBotAvatarEnabled !==
-          false && <DeepTreeEchoAvatarDisplay position="floating" />}
     </div>
   );
 }
