@@ -1,19 +1,19 @@
 import React, { useMemo, useEffect } from "react";
 import { EmotionalVector } from "./Live2DAvatar";
 
-// Import images - in a real app these typically would be imported or referenced by URL
-// We are using static paths
+// Sprite paths - served from the build output root (frontend/static/ → html-dist/ → dist/)
+// The /static/ prefix is NOT needed since express.static serves from DIST_DIR root
 const SPRITE_PATHS = {
-  happy_up: "/static/images/avatar/sprites/sprite_happy_up.jpg",
-  neutral: "/static/images/avatar/sprites/sprite_neutral.jpg",
-  ecstatic: "/static/images/avatar/sprites/sprite_ecstatic.jpg",
-  speaking: "/static/images/avatar/sprites/sprite_speaking.jpg",
-  surprised: "/static/images/avatar/sprites/sprite_surprised.jpg",
-  singing: "/static/images/avatar/sprites/sprite_singing.jpg",
-  annoyed: "/static/images/avatar/sprites/sprite_annoyed.jpg",
-  content: "/static/images/avatar/sprites/sprite_content.jpg",
-  thinking: "/static/images/avatar/sprites/sprite_thinking.jpg",
-  bored: "/static/images/avatar/sprites/sprite_bored.jpg",
+  happy_up: "/images/avatar/sprites/sprite_happy_up.jpg",
+  neutral: "/images/avatar/sprites/sprite_neutral.jpg",
+  ecstatic: "/images/avatar/sprites/sprite_ecstatic.jpg",
+  speaking: "/images/avatar/sprites/sprite_speaking.jpg",
+  surprised: "/images/avatar/sprites/sprite_surprised.jpg",
+  singing: "/images/avatar/sprites/sprite_singing.jpg",
+  annoyed: "/images/avatar/sprites/sprite_annoyed.jpg",
+  content: "/images/avatar/sprites/sprite_content.jpg",
+  thinking: "/images/avatar/sprites/sprite_thinking.jpg",
+  bored: "/images/avatar/sprites/sprite_bored.jpg",
 };
 
 export interface ResponsiveSpriteAvatarProps {
@@ -27,6 +27,9 @@ export interface ResponsiveSpriteAvatarProps {
 /**
  * A responsive avatar that switches between static sprites based on emotional state.
  * Provides an immediate "alive" feeling without full Live2D rigging.
+ *
+ * When used inside a panel-avatar container, the CSS pipeline overrides
+ * width/height to 100% and removes border-radius for a full-panel display.
  */
 export const ResponsiveSpriteAvatar: React.FC<ResponsiveSpriteAvatarProps> = ({
   emotionalState,
@@ -39,10 +42,6 @@ export const ResponsiveSpriteAvatar: React.FC<ResponsiveSpriteAvatarProps> = ({
   const currentSprite = useMemo(() => {
     // 1. High Priority: Speaking
     if (isSpeaking) {
-      // Alternate between speaking and singing or open mouth variants if available?
-      // For now, straight mapping.
-      // If strictly speaking, use the 'speaking' sprite.
-      // Maybe check emotion to see if 'singing' is better (e.g. high happiness)
       const happiness = Number(emotionalState?.happiness || 0);
       if (happiness > 0.7) return SPRITE_PATHS.singing;
       return SPRITE_PATHS.speaking;
@@ -59,7 +58,7 @@ export const ResponsiveSpriteAvatar: React.FC<ResponsiveSpriteAvatarProps> = ({
     const _confusion = Number(emotionalState.confusion || 0);
     const boredom = Number(emotionalState.boredom || 0);
     const contentment = Number(emotionalState.contentment || 0);
-    const thinking = Number(emotionalState.thinking || 0); // Hypothetical
+    const thinking = Number(emotionalState.thinking || 0);
 
     // Heuristics
     if (surprise > 0.6) return SPRITE_PATHS.surprised;
@@ -93,7 +92,6 @@ export const ResponsiveSpriteAvatar: React.FC<ResponsiveSpriteAvatarProps> = ({
         width: width || "100%",
         height: height || "100%",
         overflow: "hidden",
-        borderRadius: "50%", // Assuming circular avatar for now, or use CSS class
         position: "relative",
         display: "flex",
         alignItems: "center",
@@ -107,31 +105,30 @@ export const ResponsiveSpriteAvatar: React.FC<ResponsiveSpriteAvatarProps> = ({
         style={{
           width: "100%",
           height: "100%",
-          objectFit: "cover",
-          transition: "opacity 0.2s ease-in-out", // Smooth transition between sprites
+          objectFit: "contain",
+          transition: "opacity 0.2s ease-in-out",
         }}
       />
 
-      {/* Overlay for speaking pulse effect if needed */}
+      {/* Overlay for speaking pulse effect */}
       {isSpeaking && (
         <div
           style={{
             position: "absolute",
             inset: 0,
-            borderRadius: "50%",
             boxShadow: "0 0 20px 5px rgba(99, 102, 241, 0.3)",
-            animation: "pulse 1s infinite",
+            animation: "sprite-pulse 1s infinite",
           }}
         />
       )}
 
       <style>{`
-                @keyframes pulse {
-                    0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
-                    70% { box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
-                    100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
-                }
-            `}</style>
+        @keyframes sprite-pulse {
+          0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+          70% { box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+        }
+      `}</style>
     </div>
   );
 };
