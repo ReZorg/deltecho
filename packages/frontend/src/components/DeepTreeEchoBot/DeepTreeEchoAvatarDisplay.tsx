@@ -19,7 +19,7 @@ import {
   useDeepTreeEchoAvatarOptional,
   AvatarProcessingState as BotProcessingState,
 } from "./DeepTreeEchoAvatarContext";
-import "../AICompanionHub/Live2DAvatar.scss";
+// Styles loaded via scss/components/_deep-tree-echo-avatar.scss in the SCSS build pipeline
 
 export interface DeepTreeEchoAvatarDisplayProps {
   /** Width in pixels */
