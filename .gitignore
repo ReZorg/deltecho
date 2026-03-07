@@ -102,3 +102,9 @@ packages/digital-garden/
 packages/shared/ts-compiled-for-tests/
 packages/target-electron/bundle_out/
 packages/target-browser/.wrangler/
+
+# Local diagnostic files
+DIAGNOSIS.md
+INSPECTION_NOTES.md
+PRODUCTION_STATE.md
+.wrangler/
