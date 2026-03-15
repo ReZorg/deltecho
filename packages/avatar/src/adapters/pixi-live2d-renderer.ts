@@ -228,7 +228,7 @@ export class PixiLive2DRenderer implements ICubismRenderer {
       if (cubismCore?.Logging) {
         const origSetLogFunction = cubismCore.Logging.csmSetLogFunction;
         if (origSetLogFunction) {
-          cubismCore.Logging.csmSetLogFunction = function(_fn: any) {
+          cubismCore.Logging.csmSetLogFunction = function (_fn: any) {
             // Replace any console.log reference with our safe version
             origSetLogFunction.call(this, safeLog);
           };
@@ -360,7 +360,7 @@ export class PixiLive2DRenderer implements ICubismRenderer {
     // chain and crashes the entire app. fromSync() returns immediately and
     // we handle load/error via events.
     return new Promise<void>((resolve, reject) => {
-      const LOAD_TIMEOUT = 45000; // 45s for 13MB texture
+      const LOAD_TIMEOUT = 90000; // 90s for texture download (optimized to ~3MB)
       let settled = false;
 
       const timeoutId = setTimeout(() => {
@@ -405,7 +405,10 @@ export class PixiLive2DRenderer implements ICubismRenderer {
               resolve();
             } catch (err) {
               const error = err instanceof Error ? err : new Error(String(err));
-              _nativeError("[PixiLive2DRenderer] Post-load setup error:", error);
+              _nativeError(
+                "[PixiLive2DRenderer] Post-load setup error:",
+                error,
+              );
               reject(error);
             }
           },
@@ -419,7 +422,6 @@ export class PixiLive2DRenderer implements ICubismRenderer {
             reject(error);
           },
         }) as unknown as Live2DModel;
-
       } catch (err) {
         if (!settled) {
           settled = true;
@@ -484,29 +486,13 @@ export class PixiLive2DRenderer implements ICubismRenderer {
         this.setParameterSafe(core, PARAM_IDS.PARAM_BROW_R_Y, intensity);
         break;
       case "concerned":
-        this.setParameterSafe(
-          core,
-          PARAM_IDS.PARAM_BROW_L_Y,
-          -intensity * 0.3,
-        );
-        this.setParameterSafe(
-          core,
-          PARAM_IDS.PARAM_BROW_R_Y,
-          -intensity * 0.3,
-        );
+        this.setParameterSafe(core, PARAM_IDS.PARAM_BROW_L_Y, -intensity * 0.3);
+        this.setParameterSafe(core, PARAM_IDS.PARAM_BROW_R_Y, -intensity * 0.3);
         break;
       case "focused":
       case "thinking":
-        this.setParameterSafe(
-          core,
-          PARAM_IDS.PARAM_BROW_L_Y,
-          -intensity * 0.2,
-        );
-        this.setParameterSafe(
-          core,
-          PARAM_IDS.PARAM_BROW_R_Y,
-          -intensity * 0.2,
-        );
+        this.setParameterSafe(core, PARAM_IDS.PARAM_BROW_L_Y, -intensity * 0.2);
+        this.setParameterSafe(core, PARAM_IDS.PARAM_BROW_R_Y, -intensity * 0.2);
         break;
       default:
         // Reset to neutral

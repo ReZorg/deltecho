@@ -273,8 +273,13 @@ $border-color: #374151; // gray-700
   }
 
   @keyframes nodeGlow {
-    0%, 100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.5); }
-    50% { box-shadow: 0 0 16px rgba(139, 92, 246, 0.8); }
+    0%,
+    100% {
+      box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 16px rgba(139, 92, 246, 0.8);
+    }
   }
 
   .sim_controls {

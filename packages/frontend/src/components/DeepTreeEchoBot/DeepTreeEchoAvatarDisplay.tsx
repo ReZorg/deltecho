@@ -161,7 +161,8 @@ export const DeepTreeEchoAvatarDisplay: React.FC<
   const defaultWidth = finalPosition === "panel" ? panelDefaults.width : 300;
   const defaultHeight = finalPosition === "panel" ? panelDefaults.height : 300;
   const finalWidth = width ?? avatarContext?.state.config.width ?? defaultWidth;
-  const finalHeight = height ?? avatarContext?.state.config.height ?? defaultHeight;
+  const finalHeight =
+    height ?? avatarContext?.state.config.height ?? defaultHeight;
   const finalVisible = visible ?? avatarContext?.state.config.visible ?? true;
   const processingState =
     propsProcessingState ??

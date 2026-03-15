@@ -468,7 +468,9 @@ class DTESimulation {
           ],
         };
 
-        const atoms = cognitiveAtoms[this.currentState] || [["CognitiveNode", "Unknown"]];
+        const atoms = cognitiveAtoms[this.currentState] || [
+          ["CognitiveNode", "Unknown"],
+        ];
         const pair = atoms[Math.floor(Math.random() * atoms.length)];
         pair.forEach((n) => this.realNodes.add(n));
         this.realEdges.push({
