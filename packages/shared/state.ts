@@ -7,7 +7,7 @@ export function getDefaultState(): DesktopSettingsType {
   return {
     bounds: {},
     HTMLEmailWindowBounds: undefined,
-    enterKeySends: false,
+    enterKeySends: true,
     notifications: true,
     showNotificationContent: true,
     locale: null, // if this is null, the system chooses the system language that electron reports

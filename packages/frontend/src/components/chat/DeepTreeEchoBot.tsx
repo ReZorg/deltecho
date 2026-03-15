@@ -1,15 +1,9 @@
-import React, { useEffect, useCallback, useRef } from "react";
+import React, { useEffect, useCallback, useRef, useState } from "react";
 import { BackendRemote, onDCEvent } from "../../backend-com";
 import { selectedAccountId } from "../../ScreenController";
 import { useSettingsStore } from "../../stores/settings";
 import { getLogger } from "../../../../shared/logger";
-import useMessage from "../../hooks/chat/useMessage";
-import useDialog from "../../hooks/dialog/useDialog";
-import { getUIBridge } from "../DeepTreeEchoBot/DeepTreeEchoUIBridge";
 import { LLMService } from "../../utils/LLMService";
-// Import conditionally
-// import { VisionCapabilities } from './VisionCapabilities'
-import { PlaywrightAutomation } from "./PlaywrightAutomation";
 
 const log = getLogger("render/DeepTreeEchoBot");
 
@@ -91,19 +85,36 @@ interface DeepTreeEchoBotProps {
 // Marker prefix for bot-generated messages to prevent infinite loops
 const BOT_MARKER = "\u200B\u200B"; // Two zero-width spaces as invisible marker
 
+// Default message data template for sendMsg
+const MESSAGE_DEFAULT = {
+  file: null,
+  filename: null,
+  viewtype: null,
+  html: null,
+  location: null,
+  overrideSenderName: null,
+  quotedMessageId: null,
+  quotedText: null,
+  text: null,
+};
+
 /**
- * Deep Tree Echo bot component that handles automatic responses to messages
- * and integrates with RAG memory for learning from conversations.
+ * Deep Tree Echo bot component that handles automatic responses to messages.
+ * Uses BackendRemote.rpc.sendMsg directly to avoid UI context dependencies.
  *
  * Supports both incoming messages from contacts AND self-chat (Saved Messages)
  * where the user can talk to the bot by sending messages to themselves.
  */
 const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
   const accountId = selectedAccountId();
-  const { sendMessage } = useMessage();
   const settingsStore = useSettingsStore()[0];
   const memory = RAGMemoryStore.getInstance();
   const llmService = LLMService.getInstance();
+
+  // Debug status for visible indicator
+  const [debugStatus, setDebugStatus] = useState<string>("Initializing...");
+  const [lastEvent, setLastEvent] = useState<string>("");
+  const [messageCount, setMessageCount] = useState(0);
 
   // Track messages we've already processed to avoid duplicates
   const processedMessages = useRef<Set<number>>(new Set());
@@ -111,63 +122,27 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
   const botSentMessages = useRef<Set<string>>(new Set());
   // Debounce timer for self-chat responses
   const responseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Dialog Context for UI Bridge
-  const dialogContext = useDialog();
-
-  // Register DialogContext with UI Bridge
-  useEffect(() => {
-    if (accountId) {
-      const bridge = getUIBridge();
-      bridge.registerDialogContext(dialogContext as any);
-    }
-  }, [accountId, dialogContext]);
-
-  // Don't create instance until needed
-  const playwrightAutomation = PlaywrightAutomation.getInstance();
+  // Processing lock to prevent concurrent responses
+  const isProcessing = useRef(false);
 
   /**
-   * Process web search commands
+   * Send a message directly via RPC, bypassing useMessage hook
+   * This avoids dependency on ChatContext and works from any UI state
    */
-  const handleSearchCommand = useCallback(
-    async (query: string): Promise<string> => {
+  const sendBotMessage = useCallback(
+    async (chatId: number, text: string) => {
       try {
-        if (!query) {
-          return "Please provide a search query after the /search command.";
-        }
-        return await playwrightAutomation.searchWeb(query);
-      } catch (error) {
-        log.error("Error handling search command:", error);
-        return "I couldn't perform that web search. Playwright automation might not be available in this environment.";
-      }
-    },
-    [playwrightAutomation],
-  );
-
-  /**
-   * Process screenshot commands
-   */
-  const handleScreenshotCommand = useCallback(
-    async (url: string, chatId: number): Promise<string> => {
-      try {
-        if (!url) {
-          return "Please provide a URL after the /screenshot command.";
-        }
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
-          url = "https://" + url;
-        }
-        const screenshotPath = await playwrightAutomation.captureWebpage(url);
-        await sendMessage(accountId, chatId, {
-          text: `Screenshot of ${url}`,
-          file: screenshotPath,
+        await BackendRemote.rpc.sendMsg(accountId, chatId, {
+          ...MESSAGE_DEFAULT,
+          text,
         });
-        return `I've captured a screenshot of ${url}.`;
+        log.info(`Bot sent message to chat ${chatId}`);
       } catch (error) {
-        log.error("Error handling screenshot command:", error);
-        return "I couldn't capture a screenshot of that webpage. Playwright automation might not be available.";
+        log.error(`Failed to send bot message to chat ${chatId}:`, error);
+        throw error;
       }
     },
-    [playwrightAutomation, sendMessage, accountId],
+    [accountId],
   );
 
   const generateBotResponse = useCallback(
@@ -176,7 +151,7 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
         // Get chat history context from memory
         const chatMemory = memory.getMemoryForChat(chatId);
         const recentMessages = chatMemory
-          .slice(-10) // Last 10 messages for context
+          .slice(-10)
           .map((m) => `${m.sender}: ${m.text}`)
           .join("\n");
 
@@ -223,22 +198,43 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
         processedMessages.current = new Set(entries.slice(-500));
       }
 
+      // Prevent concurrent processing
+      if (isProcessing.current) {
+        log.info("Already processing a message, skipping");
+        return;
+      }
+      isProcessing.current = true;
+
       try {
         // Get message details
         const message = await BackendRemote.rpc.getMessage(accountId, msgId);
 
+        setLastEvent(
+          `Msg ${msgId}: "${(message.text || "").substring(0, 30)}..."`,
+        );
+
         // Skip info messages (system messages)
-        if (message.isInfo) return;
+        if (message.isInfo) {
+          log.info(`Skipping info message ${msgId}`);
+          return;
+        }
 
         // Skip empty messages
-        if (!message.text || message.text.trim().length === 0) return;
+        if (!message.text || message.text.trim().length === 0) {
+          log.info(`Skipping empty message ${msgId}`);
+          return;
+        }
 
         // Skip bot-generated messages (check for invisible marker)
-        if (message.text.startsWith(BOT_MARKER)) return;
+        if (message.text.startsWith(BOT_MARKER)) {
+          log.info(`Skipping bot-marked message ${msgId}`);
+          return;
+        }
 
         // Check if this is a message we sent as the bot
         if (botSentMessages.current.has(message.text)) {
           botSentMessages.current.delete(message.text);
+          log.info(`Skipping own bot message ${msgId}`);
           return;
         }
 
@@ -249,14 +245,19 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
         );
 
         // Skip contact requests
-        if (chatInfo.isContactRequest) return;
+        if (chatInfo.isContactRequest) {
+          log.info(`Skipping contact request message ${msgId}`);
+          return;
+        }
 
         // Determine if this is a self-chat (Saved Messages)
-        // isSelfTalk is a boolean on BasicChat that reliably identifies the self-chat
         const isSelfChat = chatInfo.isSelfTalk === true;
 
         // For non-self chats, only respond to incoming messages (not our own)
-        if (!isSelfChat && message.fromId === 1) return;
+        if (!isSelfChat && message.fromId === 1) {
+          log.info(`Skipping own outgoing message ${msgId} in non-self chat`);
+          return;
+        }
 
         // Store message in RAG memory
         memory.addEntry({
@@ -276,25 +277,10 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
             50,
           )}..."`,
         );
+        setDebugStatus(`Processing: "${message.text.substring(0, 30)}..."`);
 
-        // Process special commands
-        let response: string | null = null;
-
-        if (
-          message.text.startsWith("/vision") &&
-          message.file &&
-          message.file.includes("image")
-        ) {
-          response = await handleVisionCommand(message.file, message.text);
-        } else if (message.text.startsWith("/search")) {
-          const query = message.text.substring("/search".length).trim();
-          response = await handleSearchCommand(query);
-        } else if (message.text.startsWith("/screenshot")) {
-          const url = message.text.substring("/screenshot".length).trim();
-          response = await handleScreenshotCommand(url, chatId);
-        } else {
-          response = await generateBotResponse(message.text, chatId);
-        }
+        // Generate response
+        const response = await generateBotResponse(message.text, chatId);
 
         // Send the response
         if (response) {
@@ -302,9 +288,7 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
           const markedResponse = BOT_MARKER + response;
           botSentMessages.current.add(markedResponse);
 
-          await sendMessage(accountId, chatId, {
-            text: markedResponse,
-          });
+          await sendBotMessage(chatId, markedResponse);
 
           // Store the bot's response in memory
           memory.addEntry({
@@ -316,20 +300,20 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
             isOutgoing: true,
           });
 
+          setMessageCount((c) => c + 1);
+          setDebugStatus(`Responded (${messageCount + 1} total)`);
           log.info(`Bot responded in chat ${chatId}`);
         }
       } catch (error) {
         log.error("Error handling message:", error);
+        setDebugStatus(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      } finally {
+        isProcessing.current = false;
       }
     },
-    [
-      accountId,
-      sendMessage,
-      memory,
-      generateBotResponse,
-      handleScreenshotCommand,
-      handleSearchCommand,
-    ],
+    [accountId, sendBotMessage, memory, generateBotResponse, messageCount],
   );
 
   // Configure LLM service when settings change
@@ -350,13 +334,18 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
 
   // Listen for incoming messages from other contacts
   useEffect(() => {
-    if (!enabled || !settingsStore?.desktopSettings?.deepTreeEchoBotEnabled)
+    if (!enabled || !settingsStore?.desktopSettings?.deepTreeEchoBotEnabled) {
+      setDebugStatus("Disabled (waiting for settings)");
       return;
+    }
 
     log.info("Deep Tree Echo bot: listening for incoming messages");
+    setDebugStatus("Listening for messages...");
 
     const cleanup = onDCEvent(accountId, "IncomingMsg", async (event) => {
       const { chatId, msgId } = event;
+      log.info(`IncomingMsg event: chat=${chatId}, msg=${msgId}`);
+      setLastEvent(`IncomingMsg: chat=${chatId}, msg=${msgId}`);
       await handleMessage(chatId, msgId);
     });
 
@@ -370,8 +359,9 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
 
   // Listen for MsgsChanged events to handle self-chat (Saved Messages)
   useEffect(() => {
-    if (!enabled || !settingsStore?.desktopSettings?.deepTreeEchoBotEnabled)
+    if (!enabled || !settingsStore?.desktopSettings?.deepTreeEchoBotEnabled) {
       return;
+    }
 
     log.info(
       "Deep Tree Echo bot: listening for message changes (self-chat support)",
@@ -382,6 +372,9 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
 
       // Only process if we have valid IDs
       if (!chatId || !msgId) return;
+
+      log.info(`MsgsChanged event: chat=${chatId}, msg=${msgId}`);
+      setLastEvent(`MsgsChanged: chat=${chatId}, msg=${msgId}`);
 
       // Debounce to avoid processing rapid-fire events
       if (responseTimer.current) {
@@ -403,11 +396,19 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
 
             // Use isSelfTalk to reliably detect Saved Messages chat
             if (chatInfo.isSelfTalk) {
+              log.info(
+                `Self-chat message detected: chat=${chatId}, msg=${msgId}`,
+              );
               await handleMessage(chatId, msgId);
             }
           }
         } catch (error) {
           log.error("Error in MsgsChanged handler:", error);
+          setDebugStatus(
+            `MsgsChanged error: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
         }
       }, 500); // 500ms debounce
     });
@@ -425,97 +426,55 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
     settingsStore?.desktopSettings?.deepTreeEchoBotEnabled,
   ]);
 
-  // Periodically run learning exercises to improve the bot
-  useEffect(() => {
-    if (
-      !enabled ||
-      !settingsStore?.desktopSettings?.deepTreeEchoBotEnabled ||
-      !settingsStore?.desktopSettings?.deepTreeEchoBotMemoryEnabled
-    )
-      return;
-
-    const intervalId = setInterval(
-      () => {
-        runLearningExercise();
-      },
-      24 * 60 * 60 * 1000,
-    ); // Once a day
-
-    return () => clearInterval(intervalId);
-  }, [
-    enabled,
-    settingsStore?.desktopSettings?.deepTreeEchoBotEnabled,
-    settingsStore?.desktopSettings?.deepTreeEchoBotMemoryEnabled,
-  ]);
-
-  const runLearningExercise = useCallback(async () => {
-    try {
-      log.info("Running learning exercise...");
-      const allMemory = memory.getAllMemory();
-
-      if (allMemory.length === 0) {
-        log.info("No memories to process for learning");
-        return;
-      }
-
-      const systemPrompt =
-        "You are an AI learning system. Your task is to analyze conversation patterns and extract insights from them to improve future responses.";
-
-      const conversationData = allMemory
-        .slice(-100)
-        .map((m) => `[Chat: ${m.chatId}] ${m.sender}: ${m.text}`)
-        .join("\n");
-
-      const analysisPrompt = `Please analyze the following conversations and provide insights:\n\n${conversationData}`;
-
-      const analysis = await llmService.generateResponseWithContext(
-        analysisPrompt,
-        "",
-        systemPrompt,
-      );
-
-      log.info("Learning analysis completed:", analysis);
-      log.info(
-        `Learning exercise completed. Processed ${allMemory.length} memories.`,
-      );
-    } catch (error) {
-      log.error("Error during learning exercise:", error);
-    }
-  }, [llmService, memory]);
-
-  /**
-   * Process vision commands to analyze images
-   */
-  const handleVisionCommand = async (
-    imagePath: string,
-    _messageText: string,
-  ): Promise<string> => {
-    try {
-      const { VisionCapabilities } = await import("./VisionCapabilities");
-      const visionCapabilities = VisionCapabilities.getInstance();
-      const description =
-        await visionCapabilities.generateImageDescription(imagePath);
-      return description;
-    } catch (error) {
-      log.error("Error handling vision command:", error);
-      return "I'm sorry, I couldn't analyze this image. Vision capabilities might not be available in this environment.";
-    }
-  };
-
-  // Log bot status on mount
+  // Log bot status on mount and check LLM availability
   useEffect(() => {
     if (enabled) {
       log.info("Deep Tree Echo bot is ACTIVE");
-      // Check LLM availability
-      llmService.isAvailable().then((available) => {
-        log.info(`LLM service available: ${available}`);
-      });
+      setDebugStatus("Active - checking LLM...");
+      llmService
+        .isAvailable()
+        .then((available) => {
+          log.info(`LLM service available: ${available}`);
+          setDebugStatus(
+            available
+              ? "Active - LLM ready"
+              : "Active - LLM unavailable (will use fallback)",
+          );
+        })
+        .catch((err) => {
+          log.error("LLM availability check failed:", err);
+          setDebugStatus("Active - LLM check failed");
+        });
     } else {
-      log.info("Deep Tree Echo bot is DISABLED");
+      log.info("Deep Tree Echo bot is DISABLED (enabled prop is false)");
+      setDebugStatus("Disabled (enabled=false)");
     }
   }, [enabled, llmService]);
 
-  return null; // This is a background component with no UI
+  // Render a small debug indicator in the corner
+  return (
+    <div
+      style={{
+        position: "fixed",
+        bottom: "4px",
+        left: "4px",
+        zIndex: 9999,
+        background: "rgba(0,0,0,0.7)",
+        color: enabled ? "#0f0" : "#f00",
+        padding: "2px 6px",
+        borderRadius: "4px",
+        fontSize: "10px",
+        fontFamily: "monospace",
+        maxWidth: "300px",
+        pointerEvents: "none",
+      }}
+    >
+      DTE: {debugStatus}
+      {lastEvent && (
+        <span style={{ color: "#888", display: "block" }}>{lastEvent}</span>
+      )}
+    </div>
+  );
 };
 
 export default DeepTreeEchoBot;
