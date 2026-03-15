@@ -33,6 +33,9 @@ import type {
   Live2DAvatarController,
   EmotionalVector,
 } from "../../AICompanionHub/Live2DAvatar";
+
+// Endocrine-driven character system
+type CharacterInstanceType = import("@deltecho/avatar").CharacterInstance;
 import styles from "./DeepTreeEchoHub.module.scss";
 import classNames from "classnames";
 
@@ -615,12 +618,20 @@ const DeepTreeEchoHub: React.FC = () => {
     setAutoRun(!autoRun);
   };
 
-  // Avatar state - derive emotional vector from simulation state
+  // Avatar state - endocrine-driven character instance
   const [avatarController, setAvatarController] =
     useState<Live2DAvatarController | null>(null);
   const [avatarLoaded, setAvatarLoaded] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const characterInstanceRef = React.useRef<CharacterInstanceType | null>(null);
+  const [endocrineDebug, setEndocrineDebug] = useState<{
+    mode: string;
+    expressions: string[];
+    hormones: Record<string, number>;
+    tick: number;
+  } | null>(null);
 
+  // Fallback emotional vector (used when endocrine system isn't active)
   const avatarEmotionalState: EmotionalVector = {
     joy: simulationState.currentState === "Novel Insights" ? 0.8 : 0.3,
     interest:
@@ -635,9 +646,81 @@ const DeepTreeEchoHub: React.FC = () => {
       simulationState.currentState === "Recursive Expansion" ? 0.9 : 0.2,
   };
 
-  // Trigger avatar expressions when simulation state changes
+  // Initialize character instance with endocrine system
+  useEffect(() => {
+    let mounted = true;
+    const init = async () => {
+      try {
+        const { createCharacterInstance } = await import("@deltecho/avatar");
+        if (!mounted) return;
+        const instance = createCharacterInstance("dtecho");
+        characterInstanceRef.current = instance;
+        instance.start();
+        console.log("[DeepTreeEchoHub] Endocrine character instance started");
+      } catch (e) {
+        console.warn("[DeepTreeEchoHub] Character instance init failed:", e);
+      }
+    };
+    init();
+    return () => {
+      mounted = false;
+      if (characterInstanceRef.current) {
+        characterInstanceRef.current.dispose();
+        characterInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  // Wire avatar controller to character instance parameter applier
   useEffect(() => {
     if (!avatarController || !avatarLoaded) return;
+    const instance = characterInstanceRef.current;
+    if (instance) {
+      instance.setParameterApplier((params) => {
+        for (const [paramId, value] of Object.entries(params)) {
+          avatarController.setParameter(paramId, value);
+        }
+      });
+    }
+  }, [avatarController, avatarLoaded]);
+
+  // Feed simulation state into endocrine system
+  useEffect(() => {
+    const instance = characterInstanceRef.current;
+    if (!instance) return;
+
+    // Map DTE simulation state to cognitive input
+    instance.updateCognitive({
+      emotionalValence:
+        simulationState.currentState === "Novel Insights" ? 0.7 :
+        simulationState.currentState === "Synthesis Phase" ? 0.6 :
+        simulationState.currentState === "Self-Sealing Loop" ? -0.4 :
+        simulationState.currentState === "Entropy Threshold" ? -0.2 : 0.1,
+      emotionalArousal:
+        simulationState.currentState === "External Validation Triggered" ? 0.8 :
+        simulationState.currentState === "Pattern Recognition" ? 0.6 :
+        simulationState.currentState === "Recursive Expansion" ? 0.5 : 0.3,
+      salienceScore: 0.5,
+      isProcessing: simulationState.currentState === "Recursive Expansion",
+      isSpeaking: false,
+      dteStateName: simulationState.currentState,
+      botProcessingState: autoRun ? "thinking" : "idle",
+    });
+
+    // Update debug display
+    const state = instance.getState();
+    setEndocrineDebug({
+      mode: state.cognitiveMode,
+      expressions: state.activeExpressions,
+      hormones: state.hormoneSnapshot,
+      tick: state.tickCount,
+    });
+  }, [simulationState.currentState, autoRun]);
+
+  // Fallback: trigger avatar expressions when no character instance
+  useEffect(() => {
+    if (!avatarController || !avatarLoaded) return;
+    if (characterInstanceRef.current) return; // Endocrine system handles it
     const stateToExpression: Record<string, [string, string]> = {
       "Recursive Expansion": ["thinking", "thinking"],
       "Novel Insights": ["happy", "nodding"],
@@ -1092,29 +1175,98 @@ const DeepTreeEchoHub: React.FC = () => {
                     {simulationState.stepsTaken}
                   </span>
                 </div>
-                <h3
-                  style={{
-                    marginTop: "1rem",
-                    color: "#9ca3af",
-                    fontSize: "0.875rem",
-                  }}
-                >
-                  Emotional Vector
-                </h3>
-                {Object.entries(avatarEmotionalState).map(([key, val]) => (
-                  <div key={key} className={styles.emotion_bar}>
-                    <span className={styles.emotion_label}>{key}</span>
-                    <div className={styles.emotion_track}>
-                      <div
-                        className={styles.emotion_fill}
-                        style={{ width: `${(Number(val) || 0) * 100}%` }}
-                      />
+
+                {/* Endocrine System State */}
+                {endocrineDebug && (
+                  <>
+                    <h3
+                      style={{
+                        marginTop: "1rem",
+                        color: "#a78bfa",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      Endocrine System
+                    </h3>
+                    <div className={styles.state_row}>
+                      <span className={styles.label}>Cognitive Mode</span>
+                      <span className={styles.value} style={{ color: "#a78bfa" }}>
+                        {endocrineDebug.mode}
+                      </span>
                     </div>
-                    <span className={styles.emotion_value}>
-                      {(Number(val) || 0).toFixed(1)}
-                    </span>
-                  </div>
-                ))}
+                    <div className={styles.state_row}>
+                      <span className={styles.label}>Active Expressions</span>
+                      <span className={styles.value} style={{ fontSize: "0.75rem" }}>
+                        {endocrineDebug.expressions.slice(0, 3).join(", ") || "none"}
+                      </span>
+                    </div>
+                    <div className={styles.state_row}>
+                      <span className={styles.label}>Tick</span>
+                      <span className={styles.value}>#{endocrineDebug.tick}</span>
+                    </div>
+                    <h3
+                      style={{
+                        marginTop: "0.75rem",
+                        color: "#9ca3af",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      Hormone Levels
+                    </h3>
+                    {Object.entries(endocrineDebug.hormones)
+                      .sort(([, a], [, b]) => b - a)
+                      .slice(0, 8)
+                      .map(([key, val]) => (
+                        <div key={key} className={styles.emotion_bar}>
+                          <span className={styles.emotion_label}>
+                            {key.replace("dopamine_", "DA_").replace("norepinephrine", "NE")}
+                          </span>
+                          <div className={styles.emotion_track}>
+                            <div
+                              className={styles.emotion_fill}
+                              style={{
+                                width: `${Math.min(100, (Number(val) || 0) * 100)}%`,
+                                backgroundColor:
+                                  val > 0.5 ? "#f59e0b" : val > 0.3 ? "#a78bfa" : "#6366f1",
+                              }}
+                            />
+                          </div>
+                          <span className={styles.emotion_value}>
+                            {(Number(val) || 0).toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                  </>
+                )}
+
+                {/* Fallback: simple emotional vector */}
+                {!endocrineDebug && (
+                  <>
+                    <h3
+                      style={{
+                        marginTop: "1rem",
+                        color: "#9ca3af",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      Emotional Vector
+                    </h3>
+                    {Object.entries(avatarEmotionalState).map(([key, val]) => (
+                      <div key={key} className={styles.emotion_bar}>
+                        <span className={styles.emotion_label}>{key}</span>
+                        <div className={styles.emotion_track}>
+                          <div
+                            className={styles.emotion_fill}
+                            style={{ width: `${(Number(val) || 0) * 100}%` }}
+                          />
+                        </div>
+                        <span className={styles.emotion_value}>
+                          {(Number(val) || 0).toFixed(1)}
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
               {!isConnected && (
                 <div

@@ -1,16 +1,21 @@
 /**
- * DeepTreeEchoAvatarDisplay - Live2D Avatar Integration with Deep Tree Echo Bot
+ * DeepTreeEchoAvatarDisplay - Endocrine-Driven Live2D Avatar
  *
- * This component displays an animated Live2D avatar that responds to the
- * cognitive and emotional state of the Deep Tree Echo AI companion.
+ * Integrates the three-skill composition:
+ *   live2d-miara ⊗ live2d-dtecho ⊗ live2d-char-model
+ *
+ * The avatar's expressions are driven by a virtual endocrine system:
+ *   CognitiveState → DTECognitiveDriver → EndocrineSystem → ExpressionBridge → Cubism Parameters
+ *
+ * This replaces the previous simple valence/arousal → expression mapping
+ * with a biologically-inspired 16-channel hormone bus that produces
+ * organic, non-repetitive facial animations.
  */
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Live2DAvatar } from "../AICompanionHub/Live2DAvatar";
 import type {
   Live2DAvatarController,
-  Expression,
-  AvatarMotion,
   EmotionalVector,
 } from "../AICompanionHub/Live2DAvatar";
 import { getOrchestrator } from "./CognitiveBridge";
@@ -20,6 +25,11 @@ import {
   AvatarProcessingState as BotProcessingState,
 } from "./DeepTreeEchoAvatarContext";
 // Styles loaded via scss/components/_deep-tree-echo-avatar.scss in the SCSS build pipeline
+
+// Lazy-import the avatar character system to avoid bundling issues
+// These are imported dynamically to keep the initial bundle small
+type CharacterInstanceType = import("@deltecho/avatar").CharacterInstance;
+type DTECognitiveInputType = import("@deltecho/avatar").DTECognitiveInput;
 
 export interface DeepTreeEchoAvatarDisplayProps {
   /** Width in pixels */
@@ -40,103 +50,94 @@ export interface DeepTreeEchoAvatarDisplayProps {
   position?: "inline" | "floating" | "panel";
   /** Callback when avatar is ready */
   onReady?: () => void;
+  /** Character ID to use (default: 'dtecho') */
+  characterId?: string;
+  /** Show endocrine debug overlay */
+  showEndocrineDebug?: boolean;
 }
 
 /**
- * Maps cognitive/emotional state to a Live2D expression
+ * Endocrine debug overlay component
+ * Shows current hormone levels and cognitive mode
  */
-function mapCognitiveStateToExpression(
-  cognitiveState: UnifiedCognitiveState | null,
-  processingState?: BotProcessingState,
-): Expression {
-  // First check processing state
-  if (processingState === BotProcessingState.THINKING) {
-    return "thinking";
-  }
-  if (processingState === BotProcessingState.ERROR) {
-    return "concerned";
-  }
-  if (processingState === BotProcessingState.RESPONDING) {
-    return "focused";
-  }
+const EndocrineDebugOverlay: React.FC<{
+  characterState: {
+    cognitiveMode: string;
+    activeExpressions: string[];
+    hormoneSnapshot: Record<string, number>;
+    tickCount: number;
+  } | null;
+}> = ({ characterState }) => {
+  if (!characterState) return null;
 
-  // Then check cognitive emotional state
-  if (!cognitiveState?.cognitiveContext) {
-    return "neutral";
-  }
+  // Show top 5 hormones by level
+  const topHormones = Object.entries(characterState.hormoneSnapshot)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5);
 
-  const { emotionalValence, emotionalArousal } =
-    cognitiveState.cognitiveContext;
-
-  // High valence (positive) emotions
-  if (emotionalValence > 0.5) {
-    if (emotionalArousal > 0.7) {
-      return "surprised"; // Excited/amazed
-    } else if (emotionalArousal > 0.4) {
-      return "playful"; // Playful/engaged
-    } else {
-      return "happy"; // Content/pleased
-    }
-  }
-
-  // Low valence (negative) emotions
-  if (emotionalValence < -0.5) {
-    if (emotionalArousal > 0.5) {
-      return "concerned"; // Worried/anxious
-    } else {
-      return "contemplative"; // Sad/reflective
-    }
-  }
-
-  // Neutral valence with high arousal
-  if (emotionalArousal > 0.6) {
-    return "curious"; // Alert/attentive
-  }
-
-  // Default neutral
-  return "neutral";
-}
-
-/**
- * Maps cognitive state to an emotional vector for the avatar
- */
-function mapCognitiveStateToEmotionalVector(
-  cognitiveState: UnifiedCognitiveState | null,
-): EmotionalVector {
-  if (!cognitiveState?.cognitiveContext) {
-    return { neutral: 1.0 };
-  }
-
-  const { emotionalValence, emotionalArousal, salienceScore } =
-    cognitiveState.cognitiveContext;
-
-  // Convert cognitive emotional state to avatar emotional vector
-  const emotional: EmotionalVector = {};
-
-  // Map valence to positive/negative emotions
-  if (emotionalValence > 0) {
-    emotional.joy = emotionalValence;
-    emotional.curiosity = emotionalArousal * 0.7;
-  } else if (emotionalValence < 0) {
-    emotional.concern = Math.abs(emotionalValence);
-    emotional.focus = emotionalArousal * 0.5;
-  }
-
-  // Map arousal
-  if (emotionalArousal > 0.5) {
-    emotional.excitement = emotionalArousal;
-  } else {
-    emotional.calm = 1 - emotionalArousal;
-  }
-
-  // Map salience to attention
-  emotional.attention = salienceScore;
-
-  return emotional;
-}
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 4,
+        left: 4,
+        background: "rgba(0,0,0,0.75)",
+        color: "#0f0",
+        fontFamily: "monospace",
+        fontSize: 9,
+        padding: "4px 6px",
+        borderRadius: 4,
+        lineHeight: 1.3,
+        pointerEvents: "none",
+        zIndex: 10,
+        maxWidth: 160,
+      }}
+    >
+      <div style={{ color: "#ff0", marginBottom: 2 }}>
+        {characterState.cognitiveMode}
+      </div>
+      {characterState.activeExpressions.length > 0 && (
+        <div style={{ color: "#0ff", marginBottom: 2 }}>
+          {characterState.activeExpressions.slice(0, 2).join(", ")}
+        </div>
+      )}
+      {topHormones.map(([name, value]) => (
+        <div key={name} style={{ display: "flex", gap: 4 }}>
+          <span style={{ color: "#888", width: 70, overflow: "hidden" }}>
+            {name.replace("dopamine_", "DA_").replace("norepinephrine", "NE")}
+          </span>
+          <span
+            style={{
+              width: 40,
+              height: 6,
+              background: "#333",
+              display: "inline-block",
+              position: "relative",
+              top: 3,
+            }}
+          >
+            <span
+              style={{
+                width: `${Math.min(100, value * 100)}%`,
+                height: "100%",
+                background:
+                  value > 0.5 ? "#f80" : value > 0.3 ? "#0f0" : "#0a0",
+                display: "block",
+              }}
+            />
+          </span>
+          <span>{value.toFixed(2)}</span>
+        </div>
+      ))}
+      <div style={{ color: "#666", marginTop: 2 }}>
+        tick #{characterState.tickCount}
+      </div>
+    </div>
+  );
+};
 
 /**
- * Main Avatar Display Component
+ * Main Avatar Display Component with Endocrine-Driven Expressions
  */
 export const DeepTreeEchoAvatarDisplay: React.FC<
   DeepTreeEchoAvatarDisplayProps
@@ -150,13 +151,14 @@ export const DeepTreeEchoAvatarDisplay: React.FC<
   className = "",
   position,
   onReady,
+  characterId = "dtecho",
+  showEndocrineDebug = false,
 }) => {
   const avatarContext = useDeepTreeEchoAvatarOptional();
 
   // Use context values if available, otherwise use props
   const finalPosition =
     position ?? avatarContext?.state.config.position ?? "floating";
-  // Panel mode uses larger dimensions to fill the right side
   const panelDefaults = { width: 600, height: 400 };
   const defaultWidth = finalPosition === "panel" ? panelDefaults.width : 300;
   const defaultHeight = finalPosition === "panel" ? panelDefaults.height : 300;
@@ -172,10 +174,16 @@ export const DeepTreeEchoAvatarDisplay: React.FC<
     propsIsSpeaking ?? avatarContext?.state.isSpeaking ?? false;
   const audioLevel = propsAudioLevel ?? avatarContext?.state.audioLevel ?? 0;
 
-  const [cognitiveState, setCognitiveState] =
-    useState<UnifiedCognitiveState | null>(null);
-  const [currentExpression, setCurrentExpression] =
-    useState<Expression>("neutral");
+  // Character instance state
+  const characterInstanceRef = useRef<CharacterInstanceType | null>(null);
+  const [characterState, setCharacterState] = useState<{
+    cognitiveMode: string;
+    activeExpressions: string[];
+    hormoneSnapshot: Record<string, number>;
+    tickCount: number;
+  } | null>(null);
+
+  // Emotional vector for fallback (when endocrine system isn't driving)
   const [emotionalVector, setEmotionalVector] = useState<EmotionalVector>({
     neutral: 1.0,
   });
@@ -183,24 +191,107 @@ export const DeepTreeEchoAvatarDisplay: React.FC<
   const avatarController = useRef<Live2DAvatarController | null>(null);
   const updateIntervalRef = useRef<ReturnType<typeof setInterval>>();
 
-  // Handle avatar controller ready
+  // Initialize the character instance
+  useEffect(() => {
+    let mounted = true;
+
+    const initCharacter = async () => {
+      try {
+        const { createCharacterInstance } = await import("@deltecho/avatar");
+        if (!mounted) return;
+
+        const instance = createCharacterInstance(characterId);
+        characterInstanceRef.current = instance;
+
+        // Start the endocrine tick loop
+        instance.start();
+      } catch (error) {
+        console.warn(
+          "[DeepTreeEchoAvatarDisplay] Character instance init failed, using fallback:",
+          error,
+        );
+      }
+    };
+
+    initCharacter();
+
+    return () => {
+      mounted = false;
+      if (characterInstanceRef.current) {
+        characterInstanceRef.current.dispose();
+        characterInstanceRef.current = null;
+      }
+    };
+  }, [characterId]);
+
+  // Handle avatar controller ready — wire the parameter applier
   const handleAvatarReady = useCallback(
     (controller: Live2DAvatarController) => {
       avatarController.current = controller;
-      // Register controller with context if available
       avatarContext?.setController(controller);
+
+      // Wire the character instance's parameter applier to the Live2D controller
+      if (characterInstanceRef.current) {
+        characterInstanceRef.current.setParameterApplier((params) => {
+          for (const [paramId, value] of Object.entries(params)) {
+            controller.setParameter(paramId, value);
+          }
+        });
+      }
+
       onReady?.();
     },
     [onReady, avatarContext],
   );
 
-  // Update cognitive state from orchestrator
+  // Update cognitive state from orchestrator → character instance
   useEffect(() => {
     const updateCognitiveState = () => {
       const orchestrator = getOrchestrator();
-      if (orchestrator) {
+      const instance = characterInstanceRef.current;
+
+      if (orchestrator && instance) {
         const state = orchestrator.getState();
-        setCognitiveState(state);
+
+        // Build DTECognitiveInput from UnifiedCognitiveState
+        const cogInput: DTECognitiveInputType = {
+          emotionalValence: state?.cognitiveContext?.emotionalValence ?? 0,
+          emotionalArousal: state?.cognitiveContext?.emotionalArousal ?? 0,
+          salienceScore: state?.cognitiveContext?.salienceScore ?? 0.5,
+          isProcessing: processingState === BotProcessingState.THINKING,
+          processingIntensity:
+            processingState === BotProcessingState.THINKING ? 0.7 : 0,
+          isSpeaking,
+          audioLevel,
+          botProcessingState: processingState as
+            | "idle"
+            | "listening"
+            | "thinking"
+            | "responding"
+            | "error",
+        };
+
+        // Feed cognitive state into the character instance
+        instance.updateCognitive(cogInput);
+
+        // Update debug display
+        if (showEndocrineDebug) {
+          const charState = instance.getState();
+          setCharacterState({
+            cognitiveMode: charState.cognitiveMode,
+            activeExpressions: charState.activeExpressions,
+            hormoneSnapshot: charState.hormoneSnapshot,
+            tickCount: charState.tickCount,
+          });
+        }
+      } else if (!instance) {
+        // Fallback: use simple emotional vector mapping
+        if (orchestrator) {
+          const state = orchestrator.getState();
+          setEmotionalVector(
+            mapCognitiveStateToEmotionalVector(state ?? null),
+          );
+        }
       }
     };
 
@@ -215,43 +306,48 @@ export const DeepTreeEchoAvatarDisplay: React.FC<
         clearInterval(updateIntervalRef.current);
       }
     };
-  }, []);
+  }, [processingState, isSpeaking, audioLevel, showEndocrineDebug]);
 
-  // Update expression based on cognitive state and processing state
+  // Update lip sync directly (higher frequency than cognitive updates)
   useEffect(() => {
-    const newExpression = mapCognitiveStateToExpression(
-      cognitiveState,
-      processingState,
-    );
-    if (newExpression !== currentExpression) {
-      setCurrentExpression(newExpression);
+    if (!avatarController.current) return;
+    if (audioLevel > 0) {
+      avatarController.current.updateLipSync(audioLevel);
     }
-
-    const newEmotionalVector =
-      mapCognitiveStateToEmotionalVector(cognitiveState);
-    setEmotionalVector(newEmotionalVector);
-  }, [cognitiveState, processingState, currentExpression]);
+  }, [audioLevel]);
 
   // Trigger motion based on processing state changes
   useEffect(() => {
     if (!avatarController.current) return;
 
-    let motion: AvatarMotion | null = null;
-
-    switch (processingState) {
-      case BotProcessingState.LISTENING:
-        motion = "tilting_head";
-        break;
-      case BotProcessingState.THINKING:
-        motion = "thinking";
-        break;
-      case BotProcessingState.RESPONDING:
-        motion = "nodding";
-        break;
+    // Also check if the character instance suggests a motion
+    const instance = characterInstanceRef.current;
+    if (instance) {
+      const result = instance.getLastResult();
+      if (result?.suggestedMotionGroup) {
+        // Motion groups from the model: "Idle", "Tap", "Flic"
+        avatarController.current.playMotion(
+          result.suggestedMotionGroup === "Tap"
+            ? "nodding"
+            : result.suggestedMotionGroup === "Flic"
+              ? "tilting_head"
+              : "idle",
+        );
+        return;
+      }
     }
 
-    if (motion) {
-      avatarController.current.playMotion(motion);
+    // Fallback: map processing state to motion
+    switch (processingState) {
+      case BotProcessingState.LISTENING:
+        avatarController.current.playMotion("tilting_head");
+        break;
+      case BotProcessingState.THINKING:
+        avatarController.current.playMotion("thinking");
+        break;
+      case BotProcessingState.RESPONDING:
+        avatarController.current.playMotion("nodding");
+        break;
     }
   }, [processingState]);
 
@@ -268,7 +364,7 @@ export const DeepTreeEchoAvatarDisplay: React.FC<
   const containerClass = `deep-tree-echo-avatar-display ${className} ${positionClass}`;
 
   return (
-    <div className={containerClass}>
+    <div className={containerClass} style={{ position: "relative" }}>
       <Live2DAvatar
         model={avatarContext?.state.config.model ?? "miara"}
         width={finalWidth}
@@ -289,9 +385,46 @@ export const DeepTreeEchoAvatarDisplay: React.FC<
           </span>
         </div>
       )}
+      {showEndocrineDebug && (
+        <EndocrineDebugOverlay characterState={characterState} />
+      )}
     </div>
   );
 };
+
+/**
+ * Fallback: Maps cognitive state to an emotional vector (used when character instance isn't available)
+ */
+function mapCognitiveStateToEmotionalVector(
+  cognitiveState: UnifiedCognitiveState | null,
+): EmotionalVector {
+  if (!cognitiveState?.cognitiveContext) {
+    return { neutral: 1.0 };
+  }
+
+  const { emotionalValence, emotionalArousal, salienceScore } =
+    cognitiveState.cognitiveContext;
+
+  const emotional: EmotionalVector = {};
+
+  if (emotionalValence > 0) {
+    emotional.joy = emotionalValence;
+    emotional.curiosity = emotionalArousal * 0.7;
+  } else if (emotionalValence < 0) {
+    emotional.concern = Math.abs(emotionalValence);
+    emotional.focus = emotionalArousal * 0.5;
+  }
+
+  if (emotionalArousal > 0.5) {
+    emotional.excitement = emotionalArousal;
+  } else {
+    emotional.calm = 1 - emotionalArousal;
+  }
+
+  emotional.attention = salienceScore;
+
+  return emotional;
+}
 
 export { BotProcessingState };
 export default DeepTreeEchoAvatarDisplay;

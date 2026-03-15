@@ -88,3 +88,47 @@ export {
   type EntelechyInput,
   type ESNAvatarBridgeConfig,
 } from "./esn-avatar-bridge";
+
+// Endocrine System (Virtual Hormone Bus)
+export {
+  EndocrineSystem,
+  type HormoneChannel,
+  type CognitiveMode,
+  type EndocrineEvent,
+  type HormoneState,
+  type EndocrineBaselines,
+  type EndocrineSensitivity,
+  type EndocrineConfig,
+} from "./endocrine-system";
+
+// Character Registry
+export {
+  CharacterRegistry,
+  characterRegistry,
+  MIARA_MANIFEST,
+  DTECHO_MANIFEST,
+  type CharacterManifest,
+  type CubismExpressionRule,
+  type OCEANPersonality,
+} from "./character-registry";
+
+// Endocrine-Expression Bridge
+export {
+  EndocrineExpressionBridge,
+  type CubismParameterMap,
+  type BridgeResult,
+} from "./endocrine-expression-bridge";
+
+// DTE Cognitive Driver
+export {
+  DTECognitiveDriver,
+  type DTECognitiveInput,
+} from "./dte-cognitive-driver";
+
+// Character Instance (top-level composition)
+export {
+  CharacterInstance,
+  createCharacterInstance,
+  type ParameterApplier,
+  type CharacterInstanceState,
+} from "./character-instance";
