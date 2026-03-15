@@ -13,6 +13,7 @@
 6. **The app is fully functional** - no crashes, no blank screens
 
 ## Fixes Verified
+
 - [x] Settings loads (no more webrtc_instance crash)
 - [x] Floating avatar displays in chat window (bottom-right)
 - [x] Profile creation works
