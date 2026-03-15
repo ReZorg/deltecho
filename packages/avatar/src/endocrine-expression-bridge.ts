@@ -101,6 +101,17 @@ export class EndocrineExpressionBridge {
   private previousParameters: CubismParameterMap = {};
   private smoothingFactor: number;
 
+  // Lorenz attractor state for chaotic micro-expressions
+  private lorenzX = 0.1;
+  private lorenzY = 0.0;
+  private lorenzZ = 0.0;
+  private readonly lorenzSigma = 10;
+  private readonly lorenzRho = 28;
+  private readonly lorenzBeta = 8 / 3;
+
+  // Breathing phase for natural idle animation
+  private breathPhase = 0;
+
   /**
    * @param manifest - Character manifest with expression rules
    * @param smoothingFactor - 0-1, higher = smoother transitions (0.3 recommended)
@@ -131,6 +142,19 @@ export class EndocrineExpressionBridge {
     for (const [param, value] of Object.entries(modePose)) {
       combined[param] = (combined[param] ?? 0) + value * 0.3; // Mode pose is subtle
     }
+
+    // Apply Lorenz chaotic micro-expressions for organic feel
+    this.stepLorenz(0.001);
+    const microAmplitude = 0.02; // Very subtle
+    combined.ParamAngleX = (combined.ParamAngleX ?? 0) + this.lorenzX * microAmplitude;
+    combined.ParamAngleY = (combined.ParamAngleY ?? 0) + this.lorenzY * microAmplitude;
+    combined.ParamAngleZ = (combined.ParamAngleZ ?? 0) + this.lorenzZ * microAmplitude * 0.5;
+
+    // Add breathing modulation (slow sinusoidal on ParamBreath and body)
+    this.breathPhase += 0.05; // ~3 second cycle at 100ms tick
+    const breathValue = 0.3 + 0.2 * Math.sin(this.breathPhase);
+    combined.ParamBreath = Math.max(combined.ParamBreath ?? 0, breathValue);
+    combined.ParamBodyAngleY = (combined.ParamBodyAngleY ?? 0) + Math.sin(this.breathPhase * 0.7) * 0.5;
 
     // Apply smoothing for natural transitions
     const smoothed = this.smooth(combined);
@@ -225,6 +249,23 @@ export class EndocrineExpressionBridge {
       }
     }
     return null;
+  }
+
+  /**
+   * Step the Lorenz attractor for chaotic micro-expressions
+   */
+  private stepLorenz(dt: number): void {
+    const dx = this.lorenzSigma * (this.lorenzY - this.lorenzX);
+    const dy = this.lorenzX * (this.lorenzRho - this.lorenzZ) - this.lorenzY;
+    const dz = this.lorenzX * this.lorenzY - this.lorenzBeta * this.lorenzZ;
+    this.lorenzX += dx * dt;
+    this.lorenzY += dy * dt;
+    this.lorenzZ += dz * dt;
+    // Normalize to [-1, 1] range (Lorenz attractor values can grow large)
+    const maxVal = 30;
+    this.lorenzX = Math.max(-maxVal, Math.min(maxVal, this.lorenzX)) / maxVal;
+    this.lorenzY = Math.max(-maxVal, Math.min(maxVal, this.lorenzY)) / maxVal;
+    this.lorenzZ = Math.max(-maxVal, Math.min(maxVal, this.lorenzZ)) / maxVal;
   }
 
   /**

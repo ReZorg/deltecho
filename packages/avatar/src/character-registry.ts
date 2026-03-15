@@ -262,7 +262,7 @@ const MIARA_MANIFEST: CharacterManifest = {
   },
   simulation: {
     backend: "cogsim-pml",
-    tickIntervalMs: 2000,
+    tickIntervalMs: 100,
     needsDecay: true,
   },
 };
@@ -468,7 +468,7 @@ const DTECHO_MANIFEST: CharacterManifest = {
   },
   simulation: {
     backend: "cogsim-pml",
-    tickIntervalMs: 2000,
+    tickIntervalMs: 100,
     needsDecay: true,
   },
 };

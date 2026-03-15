@@ -316,6 +316,50 @@ export const DeepTreeEchoAvatarDisplay: React.FC<
     }
   }, [audioLevel]);
 
+  // Wire streaming lip-sync mouth shapes to the Live2D controller
+  // This provides richer viseme animation than a single audioLevel
+  useEffect(() => {
+    const controller = avatarController.current;
+    if (!controller) return;
+
+    let mounted = true;
+    const wireStreamingLipSync = async () => {
+      try {
+        const { onMouthShapeUpdate, offMouthShapeUpdate } = await import(
+          "./AvatarStateManager"
+        );
+        if (!mounted) return;
+
+        const handleMouthShape = (shape: {
+          mouthOpen: number;
+          mouthWide: number;
+          lipRound: number;
+        }) => {
+          controller.updateMouthShape(
+            shape.mouthOpen,
+            shape.mouthWide,
+            shape.lipRound,
+          );
+        };
+
+        onMouthShapeUpdate(handleMouthShape);
+
+        // Cleanup on unmount
+        return () => {
+          offMouthShapeUpdate();
+        };
+      } catch {
+        // Streaming lip-sync not available, audioLevel fallback is fine
+      }
+    };
+
+    wireStreamingLipSync();
+
+    return () => {
+      mounted = false;
+    };
+  }, [avatarController.current]);
+
   // Trigger motion based on processing state changes
   useEffect(() => {
     if (!avatarController.current) return;
