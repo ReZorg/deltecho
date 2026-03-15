@@ -305,10 +305,10 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
           log.info(`Bot responded in chat ${chatId}`);
         }
       } catch (error) {
-        log.error("Error handling message:", error);
-        setDebugStatus(
-          `Error: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        const errMsg =
+          error instanceof Error ? error.message : JSON.stringify(error);
+        log.error("Error handling message:", errMsg, error);
+        setDebugStatus(`Error: ${errMsg}`);
       } finally {
         isProcessing.current = false;
       }
@@ -398,12 +398,10 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
             }
           }
         } catch (error) {
-          log.error("Error in MsgsChanged handler:", error);
-          setDebugStatus(
-            `MsgsChanged error: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          );
+          const errMsg =
+            error instanceof Error ? error.message : JSON.stringify(error);
+          log.error("Error in MsgsChanged handler:", errMsg, error);
+          setDebugStatus(`MsgsChanged error: ${errMsg}`);
         }
       }, 500); // 500ms debounce
     });
