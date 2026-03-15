@@ -17,6 +17,14 @@ import {
 } from "./AvatarStateManager";
 import { DeploymentService } from "../../utils/DeploymentService";
 import { ChatOrchestrator } from "./ChatOrchestrator";
+import {
+  AutonomousThinkingSubstrate,
+  createThinkingSubstrate,
+} from "./AutonomousThinkingSubstrate";
+import {
+  EpisodicMemoryConsolidator,
+  createMemoryConsolidator,
+} from "./EpisodicMemoryConsolidator";
 
 const log = getLogger("render/components/DeepTreeEchoBot/DeepTreeEchoBot");
 
@@ -54,6 +62,8 @@ export class DeepTreeEchoBot {
   private agenticService: AgenticLLMService;
   private toolExecutor: AgentToolExecutor;
   private chatOrchestrator: ChatOrchestrator;
+  private thinkingSubstrate: AutonomousThinkingSubstrate;
+  private memoryConsolidator: EpisodicMemoryConsolidator;
 
   constructor(options: DeepTreeEchoBotOptions) {
     // Set default options, then override with provided options
@@ -80,6 +90,44 @@ export class DeepTreeEchoBot {
     this.toolExecutor = AgentToolExecutor.getInstance();
     this.chatOrchestrator = new ChatOrchestrator();
     this.chatOrchestrator.start();
+
+    // Initialize and start the autonomous thinking substrate
+    this.thinkingSubstrate = createThinkingSubstrate({
+      tickIntervalMs: 500,
+      enableMonologue: true,
+      enableProactiveIntents: true,
+      enableConsolidation: true,
+      externalizationThreshold: 0.8,
+      proactiveCooldownMs: 120000, // 2 minutes between proactive messages
+    });
+    this.thinkingSubstrate.addEventListener((type, data) => {
+      if (type === "endocrine_update") {
+        log.debug("Thinking substrate endocrine update", data);
+      } else if (type === "proactive_intent") {
+        log.info("Thinking substrate proactive intent:", data);
+      }
+    });
+    this.thinkingSubstrate.start();
+    log.info("Autonomous thinking substrate started");
+
+    // Initialize and start the episodic memory consolidator
+    this.memoryConsolidator = createMemoryConsolidator({
+      maxMemories: 500,
+      importanceDecayRate: 0.02,
+      pruningThreshold: 0.1,
+      idleDelayMs: 60000,
+      deepDelayMs: 300000,
+      cycleIntervalMs: 30000,
+    });
+    this.memoryConsolidator.addEventListener((event) => {
+      if (event.type === "schema_extracted") {
+        log.info("Memory schema extracted:", event.details);
+      } else if (event.type === "mode_changed") {
+        log.debug("Memory consolidation:", event.details);
+      }
+    });
+    this.memoryConsolidator.start();
+    log.info("Episodic memory consolidator started");
 
     // Configure components based on options
     this.memoryStore.setEnabled(this.options.memoryEnabled);
@@ -143,6 +191,13 @@ export class DeepTreeEchoBot {
         ? Object.keys(this.options.cognitiveKeys).length
         : 0,
     });
+  }
+
+  /**
+   * Get the thinking substrate instance (for avatar integration)
+   */
+  public getThinkingSubstrate(): AutonomousThinkingSubstrate {
+    return this.thinkingSubstrate;
   }
 
   /**
@@ -211,6 +266,9 @@ export class DeepTreeEchoBot {
 
       const messageText = message.text || "";
 
+      // Notify the thinking substrate of user interaction
+      this.thinkingSubstrate.onUserInteraction(messageText);
+
       // Check if this is a command
       if (messageText.startsWith("/")) {
         await this.processCommand(accountId, chatId, messageText, message);
@@ -227,6 +285,13 @@ export class DeepTreeEchoBot {
           sender: "user",
           text: messageText,
         });
+        // Also store in episodic memory consolidator for pattern extraction
+        this.memoryConsolidator.storeEpisodicMemory(
+          messageText,
+          `chat-${chatId}`,
+          0, // Neutral valence (will be updated by endocrine system)
+          0.5 // Moderate arousal
+        );
       }
 
       // Ensure chat session in orchestrator
@@ -847,6 +912,13 @@ I'm here to assist you with various tasks and engage in meaningful conversations
           text: response,
           metadata: toolsUsed.length > 0 ? { toolsUsed } : undefined,
         } as any);
+        // Also store in episodic memory consolidator
+        this.memoryConsolidator.storeEpisodicMemory(
+          response,
+          `chat-${chatId}`,
+          0.2, // Slight positive valence for own responses
+          0.4 // Moderate arousal
+        );
       }
 
       log.info(`Sent response to chat ${chatId}`);

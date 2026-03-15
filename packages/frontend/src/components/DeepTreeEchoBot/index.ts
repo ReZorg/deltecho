@@ -166,6 +166,36 @@ export {
 } from "./AvatarStateManager";
 export type { MouthShape } from "./AvatarStateManager";
 
+// Autonomous Thinking Substrate
+export {
+  AutonomousThinkingSubstrate,
+  createThinkingSubstrate,
+} from "./AutonomousThinkingSubstrate";
+export type {
+  InternalThought,
+  EndocrineUpdate as SubstrateEndocrineUpdate,
+  ProactiveIntent,
+  ConsolidationEvent,
+  SubstrateConfig,
+  SubstrateEventType,
+} from "./AutonomousThinkingSubstrate";
+export { EchobeatPhase } from "./AutonomousThinkingSubstrate";
+
+// Episodic Memory Consolidation
+export {
+  EpisodicMemoryConsolidator,
+  createMemoryConsolidator,
+} from "./EpisodicMemoryConsolidator";
+export type {
+  MemoryTrace,
+  SemanticSchema,
+  ConsolidationMode,
+  ConsolidationStats,
+  ConsolidationEvent as MemoryConsolidationEvent,
+  ConsolidatorConfig,
+  MemoryType,
+} from "./EpisodicMemoryConsolidator";
+
 // Streaming Avatar Service
 export {
   StreamingAvatarService,
