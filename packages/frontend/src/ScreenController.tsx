@@ -435,10 +435,8 @@ export default class ScreenController extends Component {
   }
 
   render() {
-    // Get bot settings from the settings store
-    const botEnabled =
-      SettingsStoreInstance.state?.desktopSettings.deepTreeEchoBotEnabled ||
-      false;
+    // Bot manages its own enabled state internally via settings store subscription
+    const botEnabled = true;
 
     return (
       <div data-testid={`selected-account:${this.selectedAccountId}`}>

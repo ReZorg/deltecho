@@ -334,8 +334,8 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
 
   // Listen for incoming messages from other contacts
   useEffect(() => {
-    if (!enabled || !settingsStore?.desktopSettings?.deepTreeEchoBotEnabled) {
-      setDebugStatus("Disabled (waiting for settings)");
+    if (!accountId) {
+      setDebugStatus("No account selected");
       return;
     }
 
@@ -350,16 +350,11 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
     });
 
     return cleanup;
-  }, [
-    accountId,
-    enabled,
-    handleMessage,
-    settingsStore?.desktopSettings?.deepTreeEchoBotEnabled,
-  ]);
+  }, [accountId, handleMessage]);
 
   // Listen for MsgsChanged events to handle self-chat (Saved Messages)
   useEffect(() => {
-    if (!enabled || !settingsStore?.desktopSettings?.deepTreeEchoBotEnabled) {
+    if (!accountId) {
       return;
     }
 
@@ -419,37 +414,28 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
         clearTimeout(responseTimer.current);
       }
     };
-  }, [
-    accountId,
-    enabled,
-    handleMessage,
-    settingsStore?.desktopSettings?.deepTreeEchoBotEnabled,
-  ]);
+  }, [accountId, handleMessage]);
 
   // Log bot status on mount and check LLM availability
   useEffect(() => {
-    if (enabled) {
-      log.info("Deep Tree Echo bot is ACTIVE");
-      setDebugStatus("Active - checking LLM...");
-      llmService
-        .isAvailable()
-        .then((available) => {
-          log.info(`LLM service available: ${available}`);
-          setDebugStatus(
-            available
-              ? "Active - LLM ready"
-              : "Active - LLM unavailable (will use fallback)",
-          );
-        })
-        .catch((err) => {
-          log.error("LLM availability check failed:", err);
-          setDebugStatus("Active - LLM check failed");
-        });
-    } else {
-      log.info("Deep Tree Echo bot is DISABLED (enabled prop is false)");
-      setDebugStatus("Disabled (enabled=false)");
-    }
-  }, [enabled, llmService]);
+    if (!accountId) return;
+    log.info("Deep Tree Echo bot is ACTIVE");
+    setDebugStatus("Active - checking LLM...");
+    llmService
+      .isAvailable()
+      .then((available) => {
+        log.info(`LLM service available: ${available}`);
+        setDebugStatus(
+          available
+            ? "Active - LLM ready"
+            : "Active - LLM unavailable (will use fallback)",
+        );
+      })
+      .catch((err) => {
+        log.error("LLM availability check failed:", err);
+        setDebugStatus("Active - LLM check failed");
+      });
+  }, [accountId, llmService]);
 
   // Render a small debug indicator in the corner
   return (
@@ -460,7 +446,7 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
         left: "4px",
         zIndex: 9999,
         background: "rgba(0,0,0,0.7)",
-        color: enabled ? "#0f0" : "#f00",
+        color: accountId ? "#0f0" : "#f00",
         padding: "2px 6px",
         borderRadius: "4px",
         fontSize: "10px",
