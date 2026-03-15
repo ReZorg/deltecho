@@ -136,7 +136,7 @@ const MESSAGE_DEFAULT = {
  * Supports both incoming messages from contacts AND self-chat (Saved Messages)
  * where the user can talk to the bot by sending messages to themselves.
  */
-const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
+const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled: _enabled }) => {
   const accountId = selectedAccountId();
   const settingsStore = useSettingsStore()[0];
   const memory = RAGMemoryStore.getInstance();

@@ -300,7 +300,7 @@ export class FeatureMap {
    * @param coreModel - The CubismModel from model.internalModel.coreModel
    * @param model - The pixi-live2d-display Live2DModel for texture access
    */
-  extract(coreModel: any, model?: any): void {
+  extract(coreModel: any, _model?: any): void {
     if (!coreModel || !coreModel._model) {
       throw new Error('FeatureMap.extract requires a valid CubismModel with _model');
     }

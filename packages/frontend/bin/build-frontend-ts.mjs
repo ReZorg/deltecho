@@ -59,6 +59,12 @@ function config(options) {
     plugins,
     external: ['*.jpg', '*.png', '*.webp', '*.svg'],
     format: 'esm',
+    // Inject @pixi/unsafe-eval shim BEFORE any other module code.
+    // This patches ShaderSystem.prototype to avoid new Function() calls
+    // that are blocked by CSP (script-src 'self' 'wasm-unsafe-eval').
+    // Without this, PixiJS v7 shader compilation fails silently and
+    // the Live2D avatar falls back to static sprites.
+    inject: ['src/pixi-unsafe-eval-shim.ts'],
     alias: {
       path: 'path-browserify',
     },
