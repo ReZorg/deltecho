@@ -44,6 +44,8 @@ export interface Live2DAvatarController {
   setExpression: (expression: Expression, intensity?: number) => void;
   playMotion: (motion: AvatarMotion) => void;
   updateLipSync: (audioLevel: number) => void;
+  /** Update mouth shape with full viseme parameters (mouthOpen, mouthWide, lipRound) */
+  updateMouthShape: (mouthOpen: number, mouthWide: number, lipRound: number) => void;
   triggerBlink: () => void;
   setParameter: (paramId: string, value: number) => void;
 }
@@ -388,6 +390,13 @@ export function useLive2DController() {
     controllerRef.current?.updateLipSync(level);
   }, []);
 
+  const updateMouthShape = useCallback(
+    (mouthOpen: number, mouthWide: number, lipRound: number) => {
+      controllerRef.current?.updateMouthShape(mouthOpen, mouthWide, lipRound);
+    },
+    [],
+  );
+
   const triggerBlink = useCallback(() => {
     controllerRef.current?.triggerBlink();
   }, []);
@@ -401,6 +410,7 @@ export function useLive2DController() {
     setExpression,
     playMotion,
     updateLipSync,
+    updateMouthShape,
     triggerBlink,
     setParameter,
     controller: controllerRef.current,

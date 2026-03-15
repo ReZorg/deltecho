@@ -549,21 +549,51 @@ export class PixiLive2DRenderer implements ICubismRenderer {
   }
 
   /**
-   * Update lip sync value
+   * Update lip sync value from a single audio level
    */
   updateLipSync(audioLevel: number): void {
     if (!this.model?.internalModel?.coreModel) return;
 
     this.lipSyncValue = Math.max(0, Math.min(1, audioLevel));
+    const core = this.model.internalModel.coreModel;
 
-    try {
-      this.model.internalModel.coreModel.setParameterValueById(
-        PARAM_IDS.PARAM_MOUTH_OPEN_Y,
-        this.lipSyncValue,
-      );
-    } catch {
-      // Lip sync parameter might not be available
-    }
+    // Map audio level to mouth parameters:
+    // - ParamMouthOpenY: vertical opening (primary lip-sync driver)
+    // - ParamMouthForm: smile/frown shape modulated by speech energy
+    this.setParameterSafe(core, PARAM_IDS.PARAM_MOUTH_OPEN_Y, this.lipSyncValue);
+    // Slight positive mouth form during speech (natural micro-smile)
+    this.setParameterSafe(core, PARAM_IDS.PARAM_MOUTH_FORM, this.lipSyncValue * 0.15);
+  }
+
+  /**
+   * Update lip sync from a full mouth shape (mouthOpen, mouthWide, lipRound)
+   * This provides richer viseme mapping than a single audio level.
+   *
+   * Mapping:
+   *   mouthOpen  → ParamMouthOpenY  (vertical jaw opening)
+   *   mouthWide  → ParamMouthForm   (positive = wide/smile, negative = narrow/frown)
+   *   lipRound   → ParamMouthForm   (negative offset, rounded lips narrow the form)
+   */
+  updateMouthShape(mouthOpen: number, mouthWide: number, lipRound: number): void {
+    if (!this.model?.internalModel?.coreModel) return;
+
+    const core = this.model.internalModel.coreModel;
+
+    // Clamp all inputs to [0, 1]
+    const open = Math.max(0, Math.min(1, mouthOpen));
+    const wide = Math.max(0, Math.min(1, mouthWide));
+    const round = Math.max(0, Math.min(1, lipRound));
+
+    // ParamMouthOpenY: direct mapping from mouthOpen
+    this.setParameterSafe(core, PARAM_IDS.PARAM_MOUTH_OPEN_Y, open);
+
+    // ParamMouthForm: mouthWide pushes positive (smile), lipRound pushes negative (pucker)
+    // Range: -1 (full pucker) to +1 (full smile)
+    const mouthForm = wide - round * 0.6;
+    this.setParameterSafe(core, PARAM_IDS.PARAM_MOUTH_FORM, Math.max(-1, Math.min(1, mouthForm)));
+
+    // Update the lipSyncValue for backward compatibility
+    this.lipSyncValue = open;
   }
 
   /**

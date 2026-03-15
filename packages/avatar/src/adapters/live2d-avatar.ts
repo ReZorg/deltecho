@@ -60,6 +60,8 @@ export interface Live2DAvatarController {
   playMotion: (motion: AvatarMotion) => void;
   /** Update lip sync value */
   updateLipSync: (audioLevel: number) => void;
+  /** Update mouth shape with full viseme parameters */
+  updateMouthShape: (mouthOpen: number, mouthWide: number, lipRound: number) => void;
   /** Trigger a blink */
   triggerBlink: () => void;
   /** Set a model parameter directly */
@@ -157,6 +159,9 @@ export class Live2DAvatarManager {
       },
       updateLipSync: (audioLevel) => {
         this.renderer?.updateLipSync(audioLevel);
+      },
+      updateMouthShape: (mouthOpen, mouthWide, lipRound) => {
+        this.renderer?.updateMouthShape(mouthOpen, mouthWide, lipRound);
       },
       triggerBlink: () => {
         this.renderer?.setBlinking(true);
