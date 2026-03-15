@@ -132,3 +132,29 @@ export {
   type ParameterApplier,
   type CharacterInstanceState,
 } from "./character-instance";
+
+// Feature Map (Cubism mesh topology extraction & 2D image projection)
+export {
+  FeatureMap,
+  FEATURE_REGION_DEFS,
+  type DrawableMesh,
+  type BoundingBox,
+  type FeatureRegion,
+  type ImageProjection,
+  type FeatureMapSnapshot,
+} from "./feature-map";
+
+// Action Sequence (coordinated mesh transformation animations)
+export {
+  ActionSequencePlayer,
+  ActionChain,
+  ACTION_LIBRARY,
+  EASING_FUNCTIONS,
+  type ActionSequenceDef,
+  type ParameterTrack,
+  type Keyframe,
+  type EasingName,
+  type EasingFn,
+  type PlayingAction,
+  type ActionOutput,
+} from "./action-sequence";

@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeltEcho Avatar Lab - Feature Map + Actions + Endocrine</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex; height: 100vh; overflow: hidden;
+    }
+    #avatar-container { 
+      flex: 1; position: relative; background: #161b22;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #avatar-canvas { width: 100%; height: 100%; }
+    #controls { 
+      width: 420px; display: flex; flex-direction: column; background: #0d1117;
+      border-left: 1px solid #30363d;
+    }
+    /* Tabs */
+    .tab-bar {
+      display: flex; border-bottom: 1px solid #30363d; background: #161b22;
+    }
+    .tab-btn {
+      flex: 1; padding: 10px 8px; text-align: center; font-size: 12px;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+      background: transparent; border: none; color: #8b949e; cursor: pointer;
+      border-bottom: 2px solid transparent; transition: all 0.2s;
+    }
+    .tab-btn:hover { color: #c9d1d9; background: #21262d; }
+    .tab-btn.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+    .tab-panel { display: none; flex: 1; overflow-y: auto; padding: 12px; }
+    .tab-panel.active { display: block; }
+    /* Status */
+    #status { 
+      position: absolute; top: 10px; left: 10px; background: rgba(13,17,23,0.9);
+      padding: 8px 14px; border-radius: 6px; font-size: 12px; z-index: 10;
+      border: 1px solid #30363d;
+    }
+    #status .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    #status .dot.ok { background: #3fb950; }
+    #status .dot.loading { background: #d29922; animation: pulse 1s infinite; }
+    #status .dot.error { background: #f85149; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    /* Feature Map Overlay */
+    #feature-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 5;
+    }
+    #feature-overlay.interactive { pointer-events: auto; }
+    /* Common */
+    h2 { font-size: 13px; color: #58a6ff; margin: 14px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+    h2:first-child { margin-top: 0; }
+    .section { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px; margin-bottom: 10px; }
+    /* Hormone bars */
+    .hormone-bar { display: flex; align-items: center; margin: 3px 0; font-size: 11px; }
+    .hormone-bar label { width: 95px; text-align: right; padding-right: 6px; color: #8b949e; }
+    .hormone-bar .bar-bg { flex: 1; height: 12px; background: #21262d; border-radius: 6px; overflow: hidden; }
+    .hormone-bar .bar-fill { height: 100%; border-radius: 6px; transition: width 0.15s ease; }
+    .hormone-bar .bar-val { width: 36px; text-align: right; font-size: 10px; padding-left: 4px; color: #8b949e; }
+    /* Buttons */
+    .btn {
+      display: inline-block; padding: 5px 10px; margin: 2px; border: 1px solid #30363d;
+      background: #21262d; color: #c9d1d9; border-radius: 4px; cursor: pointer;
+      font-size: 11px; transition: all 0.15s;
+    }
+    .btn:hover { background: #30363d; border-color: #58a6ff; }
+    .btn.active { background: #388bfd26; border-color: #58a6ff; color: #58a6ff; }
+    .btn.playing { background: #3fb95026; border-color: #3fb950; color: #3fb950; animation: pulse 1s infinite; }
+    /* Sliders */
+    .slider-row { display: flex; align-items: center; margin: 4px 0; }
+    .slider-row label { width: 75px; font-size: 11px; color: #8b949e; }
+    .slider-row input[type="range"] { flex: 1; accent-color: #58a6ff; }
+    .slider-row .val { width: 38px; font-size: 10px; text-align: right; color: #58a6ff; }
+    /* Param rows */
+    .param-row { display: flex; align-items: center; margin: 1px 0; font-size: 10px; }
+    .param-row label { flex: 1; text-align: right; padding-right: 6px; color: #8b949e; }
+    .param-row .val { color: #58a6ff; font-weight: 600; width: 50px; font-family: monospace; }
+    /* Feature map */
+    .region-item {
+      display: flex; align-items: center; padding: 4px 6px; margin: 2px 0;
+      background: #21262d; border-radius: 4px; font-size: 11px; cursor: pointer;
+      border: 1px solid transparent; transition: all 0.15s;
+    }
+    .region-item:hover { border-color: #58a6ff; }
+    .region-item.selected { border-color: #58a6ff; background: #388bfd15; }
+    .region-item .color-dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+    .region-item .name { flex: 1; }
+    .region-item .count { color: #8b949e; font-size: 10px; }
+    .region-detail { background: #21262d; border-radius: 4px; padding: 8px; margin: 6px 0; font-size: 10px; }
+    .region-detail .row { display: flex; justify-content: space-between; margin: 2px 0; }
+    .region-detail .lbl { color: #8b949e; }
+    .region-detail .vl { color: #58a6ff; font-family: monospace; }
+    /* Action items */
+    .action-item {
+      display: flex; align-items: center; padding: 6px 8px; margin: 3px 0;
+      background: #21262d; border-radius: 4px; font-size: 11px;
+      border: 1px solid #30363d; transition: all 0.15s;
+    }
+    .action-item .name { flex: 1; font-weight: 600; }
+    .action-item .tags { color: #8b949e; font-size: 10px; margin-right: 8px; }
+    .action-item .dur { color: #8b949e; font-size: 10px; margin-right: 8px; }
+    .action-play-btn {
+      padding: 3px 10px; background: #238636; border: none; color: white;
+      border-radius: 3px; cursor: pointer; font-size: 10px;
+    }
+    .action-play-btn:hover { background: #2ea043; }
+    .action-play-btn.stop { background: #da3633; }
+    .action-play-btn.stop:hover { background: #f85149; }
+    /* Chain builder */
+    .chain-step {
+      display: flex; align-items: center; padding: 4px 6px; margin: 2px 0;
+      background: #161b22; border-radius: 3px; font-size: 10px;
+    }
+    .chain-step .num { width: 20px; color: #58a6ff; font-weight: 600; }
+    .chain-step .act { flex: 1; }
+    .chain-step .del-btn { color: #f85149; cursor: pointer; padding: 0 4px; }
+    #emotion-display {
+      text-align: center; font-size: 20px; margin: 6px 0; padding: 10px;
+      background: #161b22; border-radius: 6px; border: 1px solid #30363d;
+      font-weight: 600;
+    }
+    /* Image projection */
+    .projection-area {
+      border: 2px dashed #30363d; border-radius: 6px; padding: 16px;
+      text-align: center; margin: 8px 0; cursor: pointer; transition: all 0.2s;
+    }
+    .projection-area:hover { border-color: #58a6ff; }
+    .projection-area.dragover { border-color: #3fb950; background: #3fb95010; }
+    /* Active actions display */
+    #active-actions {
+      position: absolute; bottom: 10px; left: 10px; background: rgba(13,17,23,0.9);
+      padding: 6px 12px; border-radius: 6px; font-size: 11px; z-index: 10;
+      border: 1px solid #30363d;
+    }
+  </style>
+</head>
+<body>
+  <div id="avatar-container">
+    <canvas id="avatar-canvas"></canvas>
+    <canvas id="feature-overlay"></canvas>
+    <div id="status">
+      <span class="dot loading" id="status-dot"></span>
+      <span id="status-text">Loading Live2D model...</span>
+    </div>
+    <div id="active-actions">Actions: <span id="active-actions-list">none</span></div>
+  </div>
+  <div id="controls">
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="endocrine">Endocrine</button>
+      <button class="tab-btn" data-tab="features">Feature Map</button>
+      <button class="tab-btn" data-tab="actions">Actions</button>
+    </div>
+
+    <!-- ENDOCRINE TAB -->
+    <div class="tab-panel active" id="tab-endocrine">
+      <div id="emotion-display">Neutral</div>
+      <h2>Cognitive State</h2>
+      <div class="section" id="cog-state">
+        <div class="slider-row"><label>Valence</label><input type="range" id="sl-valence" min="-1" max="1" step="0.01" value="0"><span class="val" id="sl-valence-val">0.00</span></div>
+        <div class="slider-row"><label>Arousal</label><input type="range" id="sl-arousal" min="0" max="1" step="0.01" value="0"><span class="val" id="sl-arousal-val">0.00</span></div>
+        <div class="slider-row"><label>Dominance</label><input type="range" id="sl-dominance" min="0" max="1" step="0.01" value="0.5"><span class="val" id="sl-dominance-val">0.50</span></div>
+      </div>
+      <h2>Expression Presets</h2>
+      <div id="expression-buttons"></div>
+      <h2>Hormone Levels</h2>
+      <div id="hormone-bars"></div>
+      <h2>Active Cubism Parameters</h2>
+      <div id="cubism-params"></div>
+    </div>
+
+    <!-- FEATURE MAP TAB -->
+    <div class="tab-panel" id="tab-features">
+      <h2>Feature Regions</h2>
+      <div class="section">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:11px;" id="fm-stats">Extracting...</span>
+          <label style="font-size:10px;cursor:pointer;">
+            <input type="checkbox" id="fm-overlay-toggle"> Show overlay
+          </label>
+        </div>
+        <div id="region-list"></div>
+      </div>
+      <h2>Region Detail</h2>
+      <div class="section" id="region-detail">
+        <div style="color:#8b949e;font-size:11px;text-align:center;">Select a region above</div>
+      </div>
+      <h2>Image Projection</h2>
+      <div class="section">
+        <div class="projection-area" id="projection-drop">
+          <div style="font-size:12px;color:#8b949e;">Drop an image here or click to select</div>
+          <div style="font-size:10px;color:#484f58;margin-top:4px;">Projects onto selected region</div>
+          <input type="file" id="projection-file" accept="image/*" style="display:none;">
+        </div>
+        <div class="slider-row"><label>Opacity</label><input type="range" id="proj-opacity" min="0" max="1" step="0.05" value="0.8"><span class="val" id="proj-opacity-val">0.80</span></div>
+        <div style="margin-top:4px;">
+          <button class="btn" id="proj-replace">Replace</button>
+          <button class="btn active" id="proj-overlay">Overlay</button>
+          <button class="btn" id="proj-multiply">Multiply</button>
+          <button class="btn" id="proj-clear" style="float:right;border-color:#f85149;color:#f85149;">Clear</button>
+        </div>
+      </div>
+      <h2>Mesh Statistics</h2>
+      <div class="section" id="mesh-stats">
+        <div style="color:#8b949e;font-size:11px;">Loading...</div>
+      </div>
+    </div>
+
+    <!-- ACTIONS TAB -->
+    <div class="tab-panel" id="tab-actions">
+      <h2>Action Library</h2>
+      <div class="section">
+        <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
+          <button class="btn active" data-tag="all">All</button>
+          <button class="btn" data-tag="face">Face</button>
+          <button class="btn" data-tag="head">Head</button>
+          <button class="btn" data-tag="body">Body</button>
+          <button class="btn" data-tag="arm">Arm</button>
+          <button class="btn" data-tag="eyes">Eyes</button>
+          <button class="btn" data-tag="gesture">Gesture</button>
+        </div>
+        <div id="action-list"></div>
+      </div>
+      <h2>Action Chain Builder</h2>
+      <div class="section">
+        <div id="chain-steps" style="min-height:40px;"></div>
+        <div style="display:flex;gap:4px;margin-top:6px;">
+          <select id="chain-add-select" style="flex:1;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:3px;padding:4px;font-size:11px;"></select>
+          <button class="btn" id="chain-add-btn">+ Add</button>
+        </div>
+        <div style="display:flex;gap:4px;margin-top:6px;">
+          <button class="btn" id="chain-play" style="background:#238636;border-color:#238636;color:white;">Play Chain</button>
+          <button class="btn" id="chain-stop" style="border-color:#f85149;color:#f85149;">Stop</button>
+          <button class="btn" id="chain-clear" style="margin-left:auto;">Clear</button>
+        </div>
+      </div>
+      <h2>Currently Playing</h2>
+      <div class="section" id="playing-info">
+        <div style="color:#8b949e;font-size:11px;">No actions playing</div>
+      </div>
+      <h2>Action Output Parameters</h2>
+      <div id="action-params"></div>
+    </div>
+  </div>
+
+  <script src="./live2dcubismcore.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.4.2/dist/pixi.min.js"></script>
+  <script src="./pixi-live2d-cubism4.min.js"></script>
+  <script>
+    // ============================================================
+    // TAB SWITCHING
+    // ============================================================
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ============================================================
+    // ENDOCRINE SYSTEM (from avatar-test.html)
+    // ============================================================
+    const HORMONE_CHANNELS = [
+      { name: 'cortisol',      color: '#f85149', gland: 'HPA',           decay: 0.02 },
+      { name: 'adrenaline',    color: '#ff7b72', gland: 'HPA',           decay: 0.05 },
+      { name: 'dopamine',      color: '#d29922', gland: 'Dopaminergic',  decay: 0.03 },
+      { name: 'serotonin',     color: '#e3b341', gland: 'Serotonergic',  decay: 0.01 },
+      { name: 'norepinephrine',color: '#f0e68c', gland: 'Noradrenergic', decay: 0.04 },
+      { name: 'oxytocin',      color: '#7ee787', gland: 'Oxytocinergic', decay: 0.015 },
+      { name: 'endorphin',     color: '#56d364', gland: 'Opioidergic',   decay: 0.02 },
+      { name: 'melatonin',     color: '#3fb950', gland: 'Circadian',     decay: 0.005 },
+      { name: 'testosterone',  color: '#39d353', gland: 'Gonadal',       decay: 0.008 },
+      { name: 'estrogen',      color: '#58a6ff', gland: 'Gonadal',       decay: 0.008 },
+      { name: 'insulin',       color: '#79c0ff', gland: 'Pancreatic',    decay: 0.03 },
+      { name: 'glucagon',      color: '#a5d6ff', gland: 'Pancreatic',    decay: 0.03 },
+      { name: 'thyroid_t3',    color: '#bc8cff', gland: 'Thyroid',       decay: 0.01 },
+      { name: 'thyroid_t4',    color: '#d2a8ff', gland: 'Thyroid',       decay: 0.008 },
+      { name: 'histamine',     color: '#f778ba', gland: 'Immune',        decay: 0.04 },
+      { name: 'anandamide',    color: '#ff9bce', gland: 'Endocannabinoid', decay: 0.025 },
+    ];
+
+    class EndocrineSystem {
+      constructor() {
+        this.levels = {};
+        HORMONE_CHANNELS.forEach(h => this.levels[h.name] = 0.0);
+        this.levels.serotonin = 0.5;
+        this.levels.dopamine = 0.3;
+        this.levels.thyroid_t3 = 0.4;
+        this.levels.thyroid_t4 = 0.4;
+      }
+      inject(hormone, amount) {
+        if (this.levels[hormone] !== undefined)
+          this.levels[hormone] = Math.min(1.0, Math.max(0.0, this.levels[hormone] + amount));
+      }
+      tick(dt) {
+        HORMONE_CHANNELS.forEach(h => {
+          const baseline = h.name === 'serotonin' ? 0.5 : h.name === 'dopamine' ? 0.3 : h.name.startsWith('thyroid') ? 0.4 : 0.0;
+          this.levels[h.name] -= (this.levels[h.name] - baseline) * h.decay * dt;
+          this.levels[h.name] = Math.max(0.0, Math.min(1.0, this.levels[h.name]));
+        });
+      }
+      getSnapshot() { return { ...this.levels }; }
+    }
+
+    function driveCognitive(endo, valence, arousal, dominance) {
+      if (valence > 0) { endo.inject('dopamine', valence*0.15); endo.inject('serotonin', valence*0.1); endo.inject('oxytocin', valence*0.08); endo.inject('endorphin', valence*0.05); }
+      if (valence < 0) { endo.inject('cortisol', Math.abs(valence)*0.12); endo.inject('norepinephrine', Math.abs(valence)*0.1); }
+      if (arousal > 0.5) { endo.inject('adrenaline', (arousal-0.5)*0.2); endo.inject('norepinephrine', (arousal-0.5)*0.15); }
+      if (arousal < 0.3) { endo.inject('melatonin', (0.3-arousal)*0.1); endo.inject('anandamide', (0.3-arousal)*0.08); }
+      if (dominance > 0.6) { endo.inject('testosterone', (dominance-0.6)*0.1); }
+    }
+
+    function hormoneToParams(levels) {
+      const p = {};
+      const surprise = levels.adrenaline*0.3 + levels.norepinephrine*0.2;
+      const sleepy = levels.melatonin*0.4 + levels.anandamide*0.3;
+      p['ParamEyeLOpen'] = Math.min(1, Math.max(0, 0.7 + surprise - sleepy));
+      p['ParamEyeROpen'] = p['ParamEyeLOpen'];
+      const worry = levels.cortisol*0.3, anger = levels.norepinephrine*0.3*(1-levels.serotonin), happy = levels.dopamine*0.2+levels.oxytocin*0.1;
+      p['ParamBrowLY'] = happy - worry + surprise*0.5;
+      p['ParamBrowRY'] = p['ParamBrowLY'];
+      p['ParamBrowLAngle'] = -worry*0.5 + anger*0.3;
+      p['ParamBrowRAngle'] = p['ParamBrowLAngle'];
+      const smile = (levels.dopamine-0.3)*0.5 + levels.oxytocin*0.3 + levels.endorphin*0.2;
+      p['ParamMouthForm'] = Math.max(-1, Math.min(1, smile));
+      p['ParamMouthOpenY'] = surprise*0.4 + Math.max(0, levels.adrenaline-0.5)*0.3;
+      const energy = levels.adrenaline*0.3 + levels.dopamine*0.2 - levels.melatonin*0.3;
+      const t = Date.now();
+      p['ParamBodyAngleX'] = Math.sin(t/3000)*3*(0.5+energy);
+      p['ParamBodyAngleZ'] = Math.sin(t/5000)*1.5*(0.5+energy);
+      p['ParamAngleX'] = Math.sin(t/2500)*(5+levels.dopamine*1.5);
+      p['ParamAngleY'] = Math.sin(t/3500)*(3+levels.dopamine*0.5);
+      p['ParamAngleZ'] = Math.sin(t/6000)*2;
+      p['ParamBreath'] = (Math.sin(t/2000)+1)*0.5*(0.5+energy*0.5);
+      return p;
+    }
+
+    function detectEmotion(levels) {
+      const scores = {
+        'Excitement': levels.adrenaline*0.4+levels.dopamine*0.4-levels.cortisol*0.3,
+        'Fear': levels.cortisol*0.4+levels.adrenaline*0.3-levels.testosterone*0.3,
+        'Anger': levels.norepinephrine*0.3+levels.cortisol*0.2+levels.testosterone*0.3-levels.oxytocin*0.2,
+        'Sadness': levels.cortisol*0.3-levels.dopamine*0.3-levels.serotonin*0.2+levels.melatonin*0.1,
+        'Joy': levels.dopamine*0.3+levels.oxytocin*0.3+levels.endorphin*0.2-levels.cortisol*0.2,
+        'Surprise': levels.adrenaline*0.4+levels.norepinephrine*0.2-levels.melatonin*0.2,
+        'Calm': levels.serotonin*0.3+levels.anandamide*0.2+levels.melatonin*0.2-levels.adrenaline*0.3,
+        'Curious': levels.dopamine*0.3+levels.norepinephrine*0.1-levels.cortisol*0.2-levels.melatonin*0.1,
+        'Neutral': 0.05,
+      };
+      let best = 'Neutral', bestScore = 0.05;
+      for (const [e, s] of Object.entries(scores)) { if (s > bestScore) { best = e; bestScore = s; } }
+      return best;
+    }
+
+    // ============================================================
+    // EASING FUNCTIONS
+    // ============================================================
+    const EASING = {
+      linear: t => t,
+      easeIn: t => t*t,
+      easeOut: t => t*(2-t),
+      easeInOut: t => t<0.5 ? 2*t*t : -1+(4-2*t)*t,
+      easeInQuad: t => t*t,
+      easeOutQuad: t => 1-(1-t)*(1-t),
+      easeInOutQuad: t => t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2,
+      easeInCubic: t => t*t*t,
+      easeOutCubic: t => 1-Math.pow(1-t,3),
+      easeInOutCubic: t => t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2,
+      easeOutElastic: t => { if(t===0||t===1) return t; return Math.pow(2,-10*t)*Math.sin((t*10-0.75)*(2*Math.PI/3))+1; },
+      easeOutBounce: t => { const n=7.5625,d=2.75; if(t<1/d) return n*t*t; if(t<2/d) return n*(t-=1.5/d)*t+0.75; if(t<2.5/d) return n*(t-=2.25/d)*t+0.9375; return n*(t-=2.625/d)*t+0.984375; },
+      step: t => t<1?0:1,
+    };
+
+    // ============================================================
+    // ACTION SEQUENCE PLAYER
+    // ============================================================
+    const ACTION_LIBRARY = [
+      { name:'blink', label:'Blink', duration:0.3, loop:false, priority:5, blendIn:0.02, blendOut:0.02, tags:['face','eyes','micro'],
+        tracks:[
+          { paramId:'ParamEyeLOpen', mode:'absolute', keyframes:[{time:0,value:1},{time:0.08,value:0,easing:'easeInQuad'},{time:0.15,value:0},{time:0.3,value:1,easing:'easeOutQuad'}] },
+          { paramId:'ParamEyeROpen', mode:'absolute', keyframes:[{time:0,value:1},{time:0.08,value:0,easing:'easeInQuad'},{time:0.15,value:0},{time:0.3,value:1,easing:'easeOutQuad'}] },
+        ]},
+      { name:'wink_left', label:'Wink Left', duration:0.4, loop:false, priority:6, blendIn:0.05, blendOut:0.05, tags:['face','eyes','expression'],
+        tracks:[
+          { paramId:'ParamEyeLOpen', mode:'absolute', keyframes:[{time:0,value:1},{time:0.1,value:0,easing:'easeInQuad'},{time:0.25,value:0},{time:0.4,value:1,easing:'easeOutCubic'}] },
+          { paramId:'ParamMouthForm', mode:'absolute', keyframes:[{time:0,value:0},{time:0.1,value:0.6,easing:'easeOut'},{time:0.3,value:0.6},{time:0.4,value:0,easing:'easeIn'}] },
+        ]},
+      { name:'smile', label:'Smile', duration:1.0, loop:false, priority:4, blendIn:0.2, blendOut:0.3, tags:['face','mouth','expression'],
+        tracks:[
+          { paramId:'ParamMouthForm', mode:'absolute', keyframes:[{time:0,value:0},{time:0.3,value:0.8,easing:'easeOutCubic'},{time:0.7,value:0.8},{time:1,value:0,easing:'easeInOut'}] },
+          { paramId:'ParamEyeLOpen', mode:'absolute', keyframes:[{time:0,value:0.8},{time:0.3,value:0.6,easing:'easeOut'},{time:0.7,value:0.6},{time:1,value:0.8,easing:'easeIn'}] },
+          { paramId:'ParamEyeROpen', mode:'absolute', keyframes:[{time:0,value:0.8},{time:0.3,value:0.6,easing:'easeOut'},{time:0.7,value:0.6},{time:1,value:0.8,easing:'easeIn'}] },
+        ]},
+      { name:'talk', label:'Talking', duration:0.6, loop:true, priority:3, blendIn:0.05, blendOut:0.1, tags:['face','mouth','lipsync'],
+        tracks:[
+          { paramId:'ParamMouthOpenY', mode:'absolute', keyframes:[{time:0,value:0},{time:0.1,value:0.7,easing:'easeOut'},{time:0.2,value:0.3,easing:'easeInOut'},{time:0.3,value:0.8,easing:'easeOut'},{time:0.4,value:0.2,easing:'easeInOut'},{time:0.5,value:0.5,easing:'easeOut'},{time:0.6,value:0,easing:'easeIn'}] },
+          { paramId:'ParamMouthForm', mode:'additive', keyframes:[{time:0,value:0},{time:0.15,value:0.2,easing:'easeOut'},{time:0.3,value:-0.1,easing:'easeInOut'},{time:0.45,value:0.15,easing:'easeOut'},{time:0.6,value:0,easing:'easeIn'}] },
+        ]},
+      { name:'nod', label:'Nod', duration:0.8, loop:false, priority:5, blendIn:0.1, blendOut:0.1, tags:['head','gesture'],
+        tracks:[
+          { paramId:'ParamAngleY', mode:'additive', keyframes:[{time:0,value:0},{time:0.2,value:-8,easing:'easeOut'},{time:0.4,value:3,easing:'easeInOut'},{time:0.6,value:-5,easing:'easeInOut'},{time:0.8,value:0,easing:'easeOut'}] },
+          { paramId:'ParamBodyAngleX', mode:'additive', keyframes:[{time:0,value:0},{time:0.25,value:-2,easing:'easeOut'},{time:0.5,value:1,easing:'easeInOut'},{time:0.8,value:0,easing:'easeOut'}] },
+        ]},
+      { name:'head_shake', label:'Head Shake', duration:0.8, loop:false, priority:5, blendIn:0.1, blendOut:0.1, tags:['head','gesture'],
+        tracks:[
+          { paramId:'ParamAngleX', mode:'additive', keyframes:[{time:0,value:0},{time:0.1,value:12,easing:'easeOut'},{time:0.3,value:-12,easing:'easeInOut'},{time:0.5,value:8,easing:'easeInOut'},{time:0.65,value:-5,easing:'easeInOut'},{time:0.8,value:0,easing:'easeOut'}] },
+        ]},
+      { name:'head_tilt', label:'Head Tilt', duration:1.2, loop:false, priority:4, blendIn:0.2, blendOut:0.3, tags:['head','expression'],
+        tracks:[
+          { paramId:'ParamAngleZ', mode:'additive', keyframes:[{time:0,value:0},{time:0.4,value:8,easing:'easeOutCubic'},{time:0.8,value:8},{time:1.2,value:0,easing:'easeInOut'}] },
+          { paramId:'ParamBrowLY', mode:'additive', keyframes:[{time:0,value:0},{time:0.3,value:0.3,easing:'easeOut'},{time:0.9,value:0.3},{time:1.2,value:0,easing:'easeIn'}] },
+        ]},
+      { name:'bow', label:'Bow', duration:2.0, loop:false, priority:7, blendIn:0.2, blendOut:0.3, tags:['body','gesture','formal'],
+        tracks:[
+          { paramId:'ParamAngleY', mode:'additive', keyframes:[{time:0,value:0},{time:0.5,value:-15,easing:'easeInOutCubic'},{time:1.2,value:-15},{time:2,value:0,easing:'easeInOutCubic'}] },
+          { paramId:'ParamBodyAngleX', mode:'additive', keyframes:[{time:0,value:0},{time:0.5,value:-8,easing:'easeInOutCubic'},{time:1.2,value:-8},{time:2,value:0,easing:'easeInOutCubic'}] },
+          { paramId:'ParamEyeLOpen', mode:'absolute', keyframes:[{time:0,value:0.8},{time:0.4,value:0.3,easing:'easeIn'},{time:1.3,value:0.3},{time:1.8,value:0.8,easing:'easeOut'}] },
+          { paramId:'ParamEyeROpen', mode:'absolute', keyframes:[{time:0,value:0.8},{time:0.4,value:0.3,easing:'easeIn'},{time:1.3,value:0.3},{time:1.8,value:0.8,easing:'easeOut'}] },
+        ]},
+      { name:'wave', label:'Wave', duration:1.6, loop:false, priority:6, blendIn:0.15, blendOut:0.2, tags:['arm','gesture','greeting'],
+        tracks:[
+          { paramId:'ParamArmR1', mode:'absolute', keyframes:[{time:0,value:0},{time:0.3,value:0.8,easing:'easeOutCubic'},{time:0.5,value:0.6,easing:'easeInOut'},{time:0.7,value:0.9,easing:'easeInOut'},{time:0.9,value:0.5,easing:'easeInOut'},{time:1.1,value:0.85,easing:'easeInOut'},{time:1.6,value:0,easing:'easeInCubic'}] },
+          { paramId:'ParamArmR2', mode:'absolute', keyframes:[{time:0,value:0},{time:0.3,value:0.5,easing:'easeOut'},{time:1.3,value:0.5},{time:1.6,value:0,easing:'easeIn'}] },
+          { paramId:'ParamMouthForm', mode:'absolute', keyframes:[{time:0,value:0},{time:0.3,value:0.7,easing:'easeOut'},{time:1.2,value:0.7},{time:1.6,value:0,easing:'easeIn'}] },
+          { paramId:'ParamBodyAngleZ', mode:'additive', keyframes:[{time:0,value:0},{time:0.3,value:-3,easing:'easeOut'},{time:1.3,value:-3},{time:1.6,value:0,easing:'easeIn'}] },
+        ]},
+      { name:'point', label:'Point', duration:1.2, loop:false, priority:5, blendIn:0.15, blendOut:0.2, tags:['arm','gesture'],
+        tracks:[
+          { paramId:'ParamArmR1', mode:'absolute', keyframes:[{time:0,value:0},{time:0.3,value:0.6,easing:'easeOutCubic'},{time:0.8,value:0.6},{time:1.2,value:0,easing:'easeInCubic'}] },
+          { paramId:'ParamFingerR2', mode:'absolute', keyframes:[{time:0,value:0},{time:0.25,value:1,easing:'easeOut'},{time:0.85,value:1},{time:1.2,value:0,easing:'easeIn'}] },
+        ]},
+      { name:'shrug', label:'Shrug', duration:1.0, loop:false, priority:5, blendIn:0.1, blendOut:0.15, tags:['body','gesture','expression'],
+        tracks:[
+          { paramId:'ParamBodyAngleX', mode:'additive', keyframes:[{time:0,value:0},{time:0.2,value:3,easing:'easeOut'},{time:0.7,value:3},{time:1,value:0,easing:'easeInOut'}] },
+          { paramId:'ParamAngleZ', mode:'additive', keyframes:[{time:0,value:0},{time:0.2,value:-3,easing:'easeOut'},{time:0.7,value:-3},{time:1,value:0,easing:'easeIn'}] },
+          { paramId:'ParamBrowLY', mode:'additive', keyframes:[{time:0,value:0},{time:0.2,value:0.4,easing:'easeOut'},{time:0.7,value:0.4},{time:1,value:0,easing:'easeIn'}] },
+          { paramId:'ParamBrowRY', mode:'additive', keyframes:[{time:0,value:0},{time:0.2,value:0.4,easing:'easeOut'},{time:0.7,value:0.4},{time:1,value:0,easing:'easeIn'}] },
+        ]},
+      { name:'deep_breath', label:'Deep Breath', duration:3.0, loop:false, priority:2, blendIn:0.3, blendOut:0.3, tags:['body','breathing','calm'],
+        tracks:[
+          { paramId:'ParamBreath', mode:'absolute', keyframes:[{time:0,value:0},{time:1,value:1,easing:'easeInOutCubic'},{time:1.5,value:1},{time:3,value:0,easing:'easeInOutCubic'}] },
+          { paramId:'ParamBodyAngleX', mode:'additive', keyframes:[{time:0,value:0},{time:1,value:-2,easing:'easeInOut'},{time:3,value:0,easing:'easeInOut'}] },
+        ]},
+      { name:'startle', label:'Startle', duration:0.6, loop:false, priority:8, blendIn:0.02, blendOut:0.15, tags:['body','face','reaction'],
+        tracks:[
+          { paramId:'ParamEyeLOpen', mode:'absolute', keyframes:[{time:0,value:0.8},{time:0.05,value:1,easing:'step'},{time:0.4,value:1},{time:0.6,value:0.8,easing:'easeOut'}] },
+          { paramId:'ParamEyeROpen', mode:'absolute', keyframes:[{time:0,value:0.8},{time:0.05,value:1,easing:'step'},{time:0.4,value:1},{time:0.6,value:0.8,easing:'easeOut'}] },
+          { paramId:'ParamMouthOpenY', mode:'absolute', keyframes:[{time:0,value:0},{time:0.05,value:0.6,easing:'step'},{time:0.3,value:0.6},{time:0.6,value:0,easing:'easeOut'}] },
+          { paramId:'ParamBodyAngleX', mode:'additive', keyframes:[{time:0,value:0},{time:0.05,value:4,easing:'step'},{time:0.6,value:0,easing:'easeOutElastic'}] },
+          { paramId:'ParamBrowLY', mode:'additive', keyframes:[{time:0,value:0},{time:0.05,value:0.5,easing:'step'},{time:0.6,value:0,easing:'easeOut'}] },
+          { paramId:'ParamBrowRY', mode:'additive', keyframes:[{time:0,value:0},{time:0.05,value:0.5,easing:'step'},{time:0.6,value:0,easing:'easeOut'}] },
+        ]},
+      { name:'look_left', label:'Look Left', duration:0.8, loop:false, priority:3, blendIn:0.15, blendOut:0.2, tags:['head','eyes','gaze'],
+        tracks:[
+          { paramId:'ParamAngleX', mode:'additive', keyframes:[{time:0,value:0},{time:0.3,value:-15,easing:'easeOutCubic'},{time:0.5,value:-15},{time:0.8,value:0,easing:'easeInOut'}] },
+          { paramId:'ParamEyeBallX', mode:'additive', keyframes:[{time:0,value:0},{time:0.2,value:-0.8,easing:'easeOut'},{time:0.55,value:-0.8},{time:0.8,value:0,easing:'easeIn'}] },
+        ]},
+      { name:'look_right', label:'Look Right', duration:0.8, loop:false, priority:3, blendIn:0.15, blendOut:0.2, tags:['head','eyes','gaze'],
+        tracks:[
+          { paramId:'ParamAngleX', mode:'additive', keyframes:[{time:0,value:0},{time:0.3,value:15,easing:'easeOutCubic'},{time:0.5,value:15},{time:0.8,value:0,easing:'easeInOut'}] },
+          { paramId:'ParamEyeBallX', mode:'additive', keyframes:[{time:0,value:0},{time:0.2,value:0.8,easing:'easeOut'},{time:0.55,value:0.8},{time:0.8,value:0,easing:'easeIn'}] },
+        ]},
+    ];
+
+    class ActionSequencePlayer {
+      constructor() {
+        this.library = new Map();
+        this.playing = [];
+        this.baseValues = new Map();
+        ACTION_LIBRARY.forEach(a => this.library.set(a.name, a));
+      }
+      play(name, speed=1, onComplete) {
+        const def = this.library.get(name);
+        if (!def) return false;
+        this.playing = this.playing.filter(p => p.def.name !== name);
+        this.playing.push({ def, time:0, weight:0, blendingIn:true, blendingOut:false, finished:false, speed, onComplete });
+        this.playing.sort((a,b) => a.def.priority - b.def.priority);
+        return true;
+      }
+      stop(name) { const a = this.playing.find(p => p.def.name===name); if(a) { a.blendingOut=true; a.blendingIn=false; } }
+      stopAll() { this.playing.forEach(a => { a.blendingOut=true; a.blendingIn=false; }); }
+      isPlaying(name) { return this.playing.some(p => p.def.name===name && !p.finished); }
+      setBaseValues(v) { this.baseValues = v; }
+      tick(dt) {
+        const output = new Map(this.baseValues);
+        const active = [];
+        for (const action of this.playing) {
+          if (action.finished) continue;
+          action.time += dt * action.speed;
+          if (action.def.loop && action.time >= action.def.duration) action.time %= action.def.duration;
+          if (action.blendingIn) {
+            action.weight = action.def.blendIn > 0 ? Math.min(1, action.time/action.def.blendIn) : 1;
+            if (action.weight >= 1) { action.blendingIn = false; action.weight = 1; }
+          }
+          const tte = action.def.duration - action.time;
+          if (!action.def.loop && tte <= action.def.blendOut) action.blendingOut = true;
+          if (action.blendingOut) action.weight = action.def.blendOut > 0 ? Math.max(0, tte/action.def.blendOut) : 0;
+          if (!action.def.loop && action.time >= action.def.duration) { action.finished=true; action.weight=0; if(action.onComplete) action.onComplete(); continue; }
+          if (action.weight <= 0) { action.finished=true; if(action.onComplete) action.onComplete(); continue; }
+          active.push(action.def.name);
+          for (const track of action.def.tracks) {
+            const val = this.evalTrack(track, action.time);
+            if (val === null) continue;
+            const tw = action.weight * (track.weight ?? 1);
+            const cur = output.get(track.paramId) ?? 0;
+            output.set(track.paramId, track.mode==='additive' ? cur + val*tw : cur*(1-tw) + val*tw);
+          }
+        }
+        this.playing = this.playing.filter(p => !p.finished);
+        return { params: output, activeActions: active };
+      }
+      evalTrack(track, time) {
+        const kfs = track.keyframes;
+        if (!kfs.length) return null;
+        if (kfs.length === 1) return kfs[0].value;
+        if (time <= kfs[0].time) return kfs[0].value;
+        if (time >= kfs[kfs.length-1].time) return kfs[kfs.length-1].value;
+        for (let i=0; i<kfs.length-1; i++) {
+          if (time >= kfs[i].time && time < kfs[i+1].time) {
+            const dur = kfs[i+1].time - kfs[i].time;
+            if (dur <= 0) return kfs[i].value;
+            const t = (time - kfs[i].time) / dur;
+            const ef = EASING[kfs[i+1].easing || 'linear'] || EASING.linear;
+            return kfs[i].value + (kfs[i+1].value - kfs[i].value) * ef(t);
+          }
+        }
+        return kfs[kfs.length-1].value;
+      }
+      getPlayingActions() { return this.playing.filter(p=>!p.finished).map(p=>p.def.name); }
+    }
+
+    // ============================================================
+    // FEATURE MAP SYSTEM
+    // ============================================================
+    const REGION_COLORS = {
+      face:'#58a6ff', eyes:'#79c0ff', brows:'#a5d6ff', mouth:'#f85149',
+      hair_front:'#d29922', hair_side:'#e3b341', hair_back:'#f0e68c', hair_twin:'#db6d28',
+      upper_body:'#7ee787', bust:'#56d364', arm_left:'#3fb950', arm_right:'#39d353',
+      lower_body:'#bc8cff', leg_left:'#d2a8ff', leg_right:'#e8d5ff',
+      wings_back:'#f778ba', wings_front:'#ff9bce', clothing:'#ffa657',
+      fairy:'#a371f7', environment:'#484f58', effects:'#f0e68c',
+    };
+
+    const REGION_DEFS = {
+      face: { label:'Face', partIds:['PartFace'], params:['ParamAngleX','ParamAngleY','ParamAngleZ'] },
+      eyes: { label:'Eyes', partIds:['PartEye'], params:['ParamEyeLOpen','ParamEyeROpen','ParamEyeBallX','ParamEyeBallY'] },
+      brows: { label:'Eyebrows', partIds:['PartBrow'], params:['ParamBrowLY','ParamBrowRY','ParamBrowLAngle','ParamBrowRAngle'] },
+      mouth: { label:'Mouth', partIds:['PartMouth'], params:['ParamMouthForm','ParamMouthOpenY'] },
+      hair_front: { label:'Hair Front', partIds:['PartHairFront','PartHairAhoge','PartHairAccFront'], params:['ParamHairFront'] },
+      hair_side: { label:'Hair Side', partIds:['PartHairSideL','PartHairSideR','PartHairSideLBack'], params:['ParamHairSide'] },
+      hair_back: { label:'Hair Back', partIds:['PartHairBack','PartHairBackRBack','PartHairBackTail','PartHairL','PartHairR'], params:['ParamHairBack'] },
+      hair_twin: { label:'Hair Twins', partIds:['PartHairTwinL','PartHairTwinR'], params:[] },
+      upper_body: { label:'Upper Body', partIds:['PartUpperBody','PartBody','PartTrunk'], params:['ParamBodyAngleX','ParamBodyAngleZ'] },
+      bust: { label:'Bust', partIds:['PartBust'], params:['ParamBustX','ParamBust'] },
+      arm_left: { label:'Left Arm', partIds:['PartArmL','PartHandL'], params:['ParamArmL1','ParamArmL2','ParamArmL3'] },
+      arm_right: { label:'Right Arm', partIds:['PartArmR'], params:['ParamArmR1','ParamArmR2','ParamArmR3'] },
+      lower_body: { label:'Lower Body', partIds:['PartLowerBody'], params:[] },
+      leg_left: { label:'Left Leg', partIds:['PartLegL'], params:['ParamLegL1X','ParamLegL2X','ParamLegL3X'] },
+      leg_right: { label:'Right Leg', partIds:['PartLegR'], params:['ParamLegR1X','ParamLegR2X','ParamLegR3X'] },
+      wings_back: { label:'Back Wings', partIds:['PartWingBackLRotation','PartWingBackRRotation'], params:[] },
+      wings_front: { label:'Front Wings', partIds:['PartWingL2Rotation','PartWingR2Rotation'], params:[] },
+      clothing: { label:'Clothing', partIds:['PartChestClothLRotation','PartChestClothRRotation'], params:['ParamCloth1','ParamCloth2'] },
+      fairy: { label:'Fairy', partIds:['PartFairy','PartFairyBody','PartFairyUpperWingL','PartFairyLowerWingL','PartFairyUpperWingR','PartFairyLowerWingR'], params:[] },
+      environment: { label:'Environment', partIds:['PartBackgroundAll','PartBackground','PartWaterSurface','PartWaterSurfaceUpper','PartWaterSurfaceBack','PartWaterSurfaceUnder'], params:[] },
+      effects: { label:'Effects', partIds:['PartSparkle'], params:[] },
+    };
+
+    class FeatureMap {
+      constructor() { this.regions = new Map(); this.drawables = []; this.drawableToPartMap = new Map(); }
+      extract(coreModel) {
+        if (!coreModel || !coreModel._model) return;
+        const cm = coreModel._model;
+        const dc = cm.drawables.count, pc = cm.parts.count;
+        const partIds = []; for (let i=0;i<pc;i++) partIds.push(cm.parts.ids[i]);
+        const partToRegion = new Map();
+        for (const [rn, rd] of Object.entries(REGION_DEFS)) rd.partIds.forEach(pid => partToRegion.set(pid, rn));
+        this.drawables = [];
+        for (let i=0;i<dc;i++) {
+          const vc = cm.drawables.vertexCounts[i];
+          if (!vc) continue;
+          const pos = cm.drawables.vertexPositions[i];
+          const uvs = cm.drawables.vertexUvs[i];
+          const ppi = cm.drawables.parentPartIndices ? cm.drawables.parentPartIndices[i] : -1;
+          const partId = (ppi>=0 && ppi<partIds.length) ? partIds[ppi] : null;
+          const regionName = partId ? partToRegion.get(partId) : null;
+          const bounds = this.computeBounds(pos);
+          const uvBounds = uvs ? this.computeBounds(uvs) : null;
+          this.drawables.push({ index:i, id:cm.drawables.ids[i], vertexCount:vc, partId, regionName, bounds, uvBounds,
+            opacity: cm.drawables.opacities[i], drawOrder: cm.drawables.drawOrders[i], textureIndex: cm.drawables.textureIndices[i] });
+          if (partId) this.drawableToPartMap.set(i, partId);
+        }
+        // Build regions
+        this.regions.clear();
+        for (const [rn, rd] of Object.entries(REGION_DEFS)) {
+          const rds = this.drawables.filter(d => d.regionName === rn);
+          if (rds.length === 0) continue;
+          const allBounds = rds.map(d=>d.bounds).filter(Boolean);
+          const allUV = rds.map(d=>d.uvBounds).filter(Boolean);
+          this.regions.set(rn, {
+            name: rn, label: rd.label, drawables: rds,
+            bounds: this.mergeBounds(allBounds),
+            uvBounds: this.mergeBounds(allUV),
+            params: rd.params,
+          });
+        }
+      }
+      computeBounds(arr) {
+        let mnx=Infinity,mny=Infinity,mxx=-Infinity,mxy=-Infinity;
+        for (let i=0;i<arr.length;i+=2) { const x=arr[i],y=arr[i+1]; if(x<mnx)mnx=x; if(y<mny)mny=y; if(x>mxx)mxx=x; if(y>mxy)mxy=y; }
+        if (mnx===Infinity) return {minX:0,minY:0,maxX:0,maxY:0,width:0,height:0,cx:0,cy:0};
+        return {minX:mnx,minY:mny,maxX:mxx,maxY:mxy,width:mxx-mnx,height:mxy-mny,cx:(mnx+mxx)/2,cy:(mny+mxy)/2};
+      }
+      mergeBounds(boxes) {
+        if (!boxes.length) return {minX:0,minY:0,maxX:0,maxY:0,width:0,height:0,cx:0,cy:0};
+        let mnx=Infinity,mny=Infinity,mxx=-Infinity,mxy=-Infinity;
+        for (const b of boxes) { if(b.minX<mnx)mnx=b.minX; if(b.minY<mny)mny=b.minY; if(b.maxX>mxx)mxx=b.maxX; if(b.maxY>mxy)mxy=b.maxY; }
+        if (mnx===Infinity) return {minX:0,minY:0,maxX:0,maxY:0,width:0,height:0,cx:0,cy:0};
+        return {minX:mnx,minY:mny,maxX:mxx,maxY:mxy,width:mxx-mnx,height:mxy-mny,cx:(mnx+mxx)/2,cy:(mny+mxy)/2};
+      }
+    }
+
+    // ============================================================
+    // GLOBALS
+    // ============================================================
+    const endocrine = new EndocrineSystem();
+    const actionPlayer = new ActionSequencePlayer();
+    const featureMap = new FeatureMap();
+    let currentModel = null;
+    let selectedRegion = null;
+    let showOverlay = false;
+    let projectionBlendMode = 'overlay';
+    let chainSteps = [];
+
+    const EXPRESSION_PRESETS = {
+      'Neutral':{valence:0,arousal:0.1,dominance:0.5}, 'Joy':{valence:0.8,arousal:0.6,dominance:0.6},
+      'Sadness':{valence:-0.7,arousal:0.2,dominance:0.3}, 'Anger':{valence:-0.6,arousal:0.9,dominance:0.9},
+      'Fear':{valence:-0.8,arousal:0.8,dominance:0.2}, 'Surprise':{valence:0.3,arousal:0.9,dominance:0.4},
+      'Excitement':{valence:0.9,arousal:0.95,dominance:0.7}, 'Calm':{valence:0.4,arousal:0.1,dominance:0.5},
+      'Curious':{valence:0.3,arousal:0.5,dominance:0.5}, 'Thinking':{valence:0.1,arousal:0.3,dominance:0.6},
+    };
+
+    // ============================================================
+    // UI SETUP
+    // ============================================================
+    // Hormone bars
+    const hormoneBarsDiv = document.getElementById('hormone-bars');
+    HORMONE_CHANNELS.forEach(h => {
+      const row = document.createElement('div'); row.className='hormone-bar';
+      row.innerHTML = `<label>${h.name}</label><div class="bar-bg"><div class="bar-fill" id="bar-${h.name}" style="width:0%;background:${h.color}"></div></div><span class="bar-val" id="val-${h.name}">0.00</span>`;
+      hormoneBarsDiv.appendChild(row);
+    });
+
+    // Expression buttons
+    const exprBtnsDiv = document.getElementById('expression-buttons');
+    Object.keys(EXPRESSION_PRESETS).forEach(name => {
+      const btn = document.createElement('button'); btn.className='btn'; btn.textContent=name;
+      btn.onclick = () => {
+        document.querySelectorAll('#expression-buttons .btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        const p = EXPRESSION_PRESETS[name];
+        document.getElementById('sl-valence').value=p.valence; document.getElementById('sl-arousal').value=p.arousal; document.getElementById('sl-dominance').value=p.dominance;
+        document.getElementById('sl-valence-val').textContent=p.valence.toFixed(2); document.getElementById('sl-arousal-val').textContent=p.arousal.toFixed(2); document.getElementById('sl-dominance-val').textContent=p.dominance.toFixed(2);
+      };
+      exprBtnsDiv.appendChild(btn);
+    });
+
+    // Slider listeners
+    ['valence','arousal','dominance'].forEach(n => {
+      document.getElementById(`sl-${n}`).addEventListener('input', function() {
+        document.getElementById(`sl-${n}-val`).textContent = parseFloat(this.value).toFixed(2);
+      });
+    });
+
+    // Action list
+    function buildActionList(filterTag='all') {
+      const div = document.getElementById('action-list'); div.innerHTML = '';
+      ACTION_LIBRARY.filter(a => filterTag==='all' || a.tags.includes(filterTag)).forEach(a => {
+        const item = document.createElement('div'); item.className='action-item';
+        item.innerHTML = `<span class="name">${a.label}</span><span class="tags">${a.tags.join(', ')}</span><span class="dur">${a.duration}s</span>`;
+        const btn = document.createElement('button'); btn.className='action-play-btn'; btn.textContent='Play';
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          if (actionPlayer.isPlaying(a.name)) { actionPlayer.stop(a.name); btn.textContent='Play'; btn.className='action-play-btn'; }
+          else { actionPlayer.play(a.name); btn.textContent='Stop'; btn.className='action-play-btn stop'; setTimeout(()=>{btn.textContent='Play';btn.className='action-play-btn';}, a.duration*1000+200); }
+        };
+        item.appendChild(btn); div.appendChild(item);
+      });
+    }
+    buildActionList();
+
+    // Tag filter buttons
+    document.querySelectorAll('[data-tag]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-tag]').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        buildActionList(btn.dataset.tag);
+      });
+    });
+
+    // Chain builder
+    const chainSelect = document.getElementById('chain-add-select');
+    ACTION_LIBRARY.forEach(a => { const o=document.createElement('option'); o.value=a.name; o.textContent=a.label; chainSelect.appendChild(o); });
+    document.getElementById('chain-add-btn').onclick = () => {
+      chainSteps.push(chainSelect.value);
+      renderChain();
+    };
+    document.getElementById('chain-clear').onclick = () => { chainSteps=[]; renderChain(); };
+    document.getElementById('chain-play').onclick = () => {
+      if (!chainSteps.length) return;
+      let idx = 0;
+      function playNext() {
+        if (idx >= chainSteps.length) return;
+        const name = chainSteps[idx++];
+        actionPlayer.play(name, 1, playNext);
+      }
+      playNext();
+    };
+    document.getElementById('chain-stop').onclick = () => actionPlayer.stopAll();
+
+    function renderChain() {
+      const div = document.getElementById('chain-steps'); div.innerHTML = '';
+      chainSteps.forEach((name, i) => {
+        const def = ACTION_LIBRARY.find(a=>a.name===name);
+        const step = document.createElement('div'); step.className='chain-step';
+        step.innerHTML = `<span class="num">${i+1}</span><span class="act">${def?def.label:name}</span><span class="del-btn" data-idx="${i}">x</span>`;
+        step.querySelector('.del-btn').onclick = () => { chainSteps.splice(i,1); renderChain(); };
+        div.appendChild(step);
+      });
+    }
+
+    // Feature map overlay toggle
+    document.getElementById('fm-overlay-toggle').addEventListener('change', function() { showOverlay = this.checked; });
+
+    // Projection file handling
+    const projDrop = document.getElementById('projection-drop');
+    const projFile = document.getElementById('projection-file');
+    projDrop.onclick = () => projFile.click();
+    projDrop.addEventListener('dragover', e => { e.preventDefault(); projDrop.classList.add('dragover'); });
+    projDrop.addEventListener('dragleave', () => projDrop.classList.remove('dragover'));
+    projDrop.addEventListener('drop', e => { e.preventDefault(); projDrop.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleProjectionImage(e.dataTransfer.files[0]); });
+    projFile.addEventListener('change', () => { if(projFile.files[0]) handleProjectionImage(projFile.files[0]); });
+    document.getElementById('proj-opacity').addEventListener('input', function() { document.getElementById('proj-opacity-val').textContent=parseFloat(this.value).toFixed(2); });
+    ['replace','overlay','multiply'].forEach(mode => {
+      document.getElementById(`proj-${mode}`).onclick = () => {
+        ['replace','overlay','multiply'].forEach(m => document.getElementById(`proj-${m}`).classList.remove('active'));
+        document.getElementById(`proj-${mode}`).classList.add('active');
+        projectionBlendMode = mode;
+      };
+    });
+
+    let projectionImage = null;
+    function handleProjectionImage(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => { projectionImage = img; projDrop.innerHTML = `<div style="font-size:12px;color:#3fb950;">Image loaded (${img.width}x${img.height})</div><div style="font-size:10px;color:#8b949e;">Select a region and it will be projected</div>`; };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+    document.getElementById('proj-clear').onclick = () => {
+      projectionImage = null;
+      projDrop.innerHTML = `<div style="font-size:12px;color:#8b949e;">Drop an image here or click to select</div><div style="font-size:10px;color:#484f58;">Projects onto selected region</div>`;
+    };
+
+    // ============================================================
+    // FEATURE OVERLAY RENDERING
+    // ============================================================
+    function drawFeatureOverlay() {
+      const overlayCanvas = document.getElementById('feature-overlay');
+      const container = document.getElementById('avatar-container');
+      overlayCanvas.width = container.clientWidth;
+      overlayCanvas.height = container.clientHeight;
+      const ctx = overlayCanvas.getContext('2d');
+      ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+      if (!showOverlay || !currentModel) return;
+
+      const model = currentModel;
+      // Cubism coordinate system:
+      // - Origin at model center
+      // - 1 unit = PixelsPerUnit (PPU) pixels in model texture space
+      // - Y axis is INVERTED (positive Y = up in model, down in screen)
+      // - Model canvas is mw x mh pixels, with PPU pixels per Cubism unit
+      const mw = model.internalModel.originalWidth || 2000;
+      const mh = model.internalModel.originalHeight || 2324;
+      const ppu = mw; // PPU equals canvas width for this model
+      const ms = model.scale.x;
+      const mx = model.x; // model center screen X (anchor 0.5)
+      const my = model.y; // model center screen Y (anchor 0.5)
+
+      function toScreen(cx, cy) {
+        // Cubism coords to model pixel coords
+        const px = mw/2 + cx * ppu;   // center + horizontal offset
+        const py = mh/2 - cy * ppu;   // center - vertical offset (Y inverted)
+        // Model pixel coords to screen coords
+        const sx = mx - mw*ms/2 + px*ms;
+        const sy = my - mh*ms/2 + py*ms;
+        return { x: sx, y: sy };
+      }
+
+      for (const [name, region] of featureMap.regions) {
+        const b = region.bounds;
+        const color = REGION_COLORS[name] || '#58a6ff';
+        // Top-left in screen = min X, max Y (because Y is inverted)
+        const tl = toScreen(b.minX, b.maxY);
+        const br = toScreen(b.maxX, b.minY);
+        const sx = Math.min(tl.x, br.x);
+        const sy = Math.min(tl.y, br.y);
+        const sw = Math.abs(br.x - tl.x);
+        const sh = Math.abs(br.y - tl.y);
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = name === selectedRegion ? 2.5 : 1;
+        ctx.globalAlpha = name === selectedRegion ? 0.9 : 0.35;
+        ctx.setLineDash(name === selectedRegion ? [] : [4, 3]);
+        ctx.strokeRect(sx, sy, sw, sh);
+
+        if (name === selectedRegion) {
+          ctx.fillStyle = color;
+          ctx.globalAlpha = 0.12;
+          ctx.fillRect(sx, sy, sw, sh);
+        }
+
+        // Label
+        ctx.setLineDash([]);
+        ctx.globalAlpha = name === selectedRegion ? 1 : 0.7;
+        ctx.fillStyle = color;
+        ctx.font = name === selectedRegion ? 'bold 11px sans-serif' : '10px sans-serif';
+        ctx.fillText(region.label, sx + 2, sy - 4);
+      }
+      ctx.globalAlpha = 1;
+
+      // Draw projection image if available and region selected
+      if (projectionImage && selectedRegion) {
+        const region = featureMap.regions.get(selectedRegion);
+        if (region) {
+          const b = region.bounds;
+          const tl = toScreen(b.minX, b.maxY);
+          const br = toScreen(b.maxX, b.minY);
+          const sx = Math.min(tl.x, br.x);
+          const sy = Math.min(tl.y, br.y);
+          const sw = Math.abs(br.x - tl.x);
+          const sh = Math.abs(br.y - tl.y);
+          const opacity = parseFloat(document.getElementById('proj-opacity').value);
+          ctx.globalAlpha = opacity;
+          if (projectionBlendMode === 'multiply') ctx.globalCompositeOperation = 'multiply';
+          else if (projectionBlendMode === 'overlay') ctx.globalCompositeOperation = 'overlay';
+          else ctx.globalCompositeOperation = 'source-over';
+          ctx.drawImage(projectionImage, sx, sy, sw, sh);
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
+
+    // ============================================================
+    // LIVE2D MODEL LOADING
+    // ============================================================
+    async function initLive2D() {
+      const statusDot = document.getElementById('status-dot');
+      const statusText = document.getElementById('status-text');
+      try {
+        const canvas = document.getElementById('avatar-canvas');
+        const app = new PIXI.Application({ view: canvas, autoStart: true, resizeTo: canvas.parentElement, backgroundAlpha: 0 });
+        statusText.textContent = 'Loading model...';
+        const model = await PIXI.live2d.Live2DModel.from('./models/miara/miara_pro_t03.model3.json');
+        currentModel = model;
+        app.stage.addChild(model);
+        const scale = Math.min(canvas.parentElement.clientWidth/model.width*0.8, canvas.parentElement.clientHeight/model.height*0.9);
+        model.scale.set(scale);
+        model.anchor.set(0.5, 0.5);
+        model.x = canvas.parentElement.clientWidth/2;
+        model.y = canvas.parentElement.clientHeight/2 + 50;
+        canvas.parentElement.addEventListener('mousemove', e => {
+          const r = canvas.parentElement.getBoundingClientRect();
+          model.focus((e.clientX-r.left)/r.width*r.width, (e.clientY-r.top)/r.height*r.height);
+        });
+
+        // Extract feature map
+        const coreModel = model.internalModel.coreModel;
+        featureMap.extract(coreModel);
+        buildRegionList();
+
+        statusDot.className='dot ok';
+        statusText.textContent = `Model loaded | ${featureMap.drawables.length} drawables | ${featureMap.regions.size} regions | ${ACTION_LIBRARY.length} actions`;
+        app.ticker.add(() => updateLoop());
+      } catch(err) {
+        statusDot.className='dot error';
+        statusText.textContent = 'Error: ' + err.message;
+        console.error(err);
+      }
+    }
+
+    function buildRegionList() {
+      const div = document.getElementById('region-list'); div.innerHTML = '';
+      const statsDiv = document.getElementById('fm-stats');
+      statsDiv.textContent = `${featureMap.drawables.length} drawables, ${featureMap.regions.size} regions`;
+
+      for (const [name, region] of featureMap.regions) {
+        const item = document.createElement('div'); item.className='region-item'; item.dataset.region=name;
+        item.innerHTML = `<span class="color-dot" style="background:${REGION_COLORS[name]||'#58a6ff'}"></span><span class="name">${region.label}</span><span class="count">${region.drawables.length} meshes</span>`;
+        item.onclick = () => {
+          document.querySelectorAll('.region-item').forEach(r=>r.classList.remove('selected'));
+          item.classList.add('selected');
+          selectedRegion = name;
+          showRegionDetail(name);
+        };
+        div.appendChild(item);
+      }
+
+      // Mesh stats
+      const meshDiv = document.getElementById('mesh-stats');
+      let totalVerts = 0, totalTris = 0;
+      featureMap.drawables.forEach(d => { totalVerts += d.vertexCount; });
+      meshDiv.innerHTML = `
+        <div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:#8b949e;">Total Drawables</span><span style="color:#58a6ff;">${featureMap.drawables.length}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:#8b949e;">Total Vertices</span><span style="color:#58a6ff;">${totalVerts.toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:#8b949e;">Feature Regions</span><span style="color:#58a6ff;">${featureMap.regions.size}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:#8b949e;">Parameters</span><span style="color:#58a6ff;">138</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:#8b949e;">Physics Chains</span><span style="color:#58a6ff;">19</span></div>
+      `;
+    }
+
+    function showRegionDetail(name) {
+      const region = featureMap.regions.get(name);
+      if (!region) return;
+      const div = document.getElementById('region-detail');
+      const b = region.bounds, uv = region.uvBounds;
+      div.innerHTML = `
+        <div style="font-weight:600;color:${REGION_COLORS[name]};margin-bottom:6px;">${region.label}</div>
+        <div class="region-detail">
+          <div class="row"><span class="lbl">Drawables</span><span class="vl">${region.drawables.length}</span></div>
+          <div class="row"><span class="lbl">Model Bounds</span><span class="vl">[${b.minX.toFixed(2)}, ${b.minY.toFixed(2)}] - [${b.maxX.toFixed(2)}, ${b.maxY.toFixed(2)}]</span></div>
+          <div class="row"><span class="lbl">Model Size</span><span class="vl">${b.width.toFixed(2)} x ${b.height.toFixed(2)}</span></div>
+          <div class="row"><span class="lbl">UV Bounds</span><span class="vl">[${uv.minX.toFixed(3)}, ${uv.minY.toFixed(3)}] - [${uv.maxX.toFixed(3)}, ${uv.maxY.toFixed(3)}]</span></div>
+          <div class="row"><span class="lbl">UV Size</span><span class="vl">${uv.width.toFixed(3)} x ${uv.height.toFixed(3)}</span></div>
+          <div class="row"><span class="lbl">Control Params</span><span class="vl">${region.params.length ? region.params.join(', ') : 'none'}</span></div>
+        </div>
+        <div style="margin-top:6px;font-size:10px;color:#8b949e;">Drawables:</div>
+        ${region.drawables.slice(0,10).map(d => `<div style="font-size:10px;color:#484f58;margin:1px 0;">${d.id} (${d.vertexCount} verts, opacity ${d.opacity.toFixed(2)})</div>`).join('')}
+        ${region.drawables.length > 10 ? `<div style="font-size:10px;color:#484f58;">... and ${region.drawables.length-10} more</div>` : ''}
+      `;
+    }
+
+    // ============================================================
+    // UPDATE LOOP
+    // ============================================================
+    let lastTime = Date.now();
+    function updateLoop() {
+      const now = Date.now();
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+
+      // Read sliders
+      const valence = parseFloat(document.getElementById('sl-valence').value);
+      const arousal = parseFloat(document.getElementById('sl-arousal').value);
+      const dominance = parseFloat(document.getElementById('sl-dominance').value);
+
+      // Drive endocrine
+      driveCognitive(endocrine, valence, arousal, dominance);
+      endocrine.tick(dt * 30);
+      const levels = endocrine.getSnapshot();
+
+      // Update hormone bars
+      HORMONE_CHANNELS.forEach(h => {
+        document.getElementById(`bar-${h.name}`).style.width = (levels[h.name]*100)+'%';
+        document.getElementById(`val-${h.name}`).textContent = levels[h.name].toFixed(2);
+      });
+
+      // Detect emotion
+      document.getElementById('emotion-display').textContent = detectEmotion(levels);
+
+      // Get endocrine-driven params
+      const endoParams = hormoneToParams(levels);
+
+      // Set base values for action player
+      const baseMap = new Map();
+      Object.entries(endoParams).forEach(([k,v]) => baseMap.set(k,v));
+      actionPlayer.setBaseValues(baseMap);
+
+      // Tick action player
+      const actionOutput = actionPlayer.tick(dt);
+
+      // Merge: action output overrides endocrine for params it touches
+      const finalParams = { ...endoParams };
+      for (const [k,v] of actionOutput.params) {
+        finalParams[k] = v;
+      }
+
+      // Apply to model
+      if (currentModel && currentModel.internalModel) {
+        const coreModel = currentModel.internalModel.coreModel;
+        let paramHtml = '';
+        Object.entries(finalParams).forEach(([name, value]) => {
+          const idx = coreModel._model?.parameters?.ids?.indexOf(name);
+          if (idx !== undefined && idx >= 0) coreModel.setParameterValueById(name, value);
+          paramHtml += `<div class="param-row"><label>${name}</label><span class="val">${typeof value==='number'?value.toFixed(3):value}</span></div>`;
+        });
+        document.getElementById('cubism-params').innerHTML = paramHtml;
+      }
+
+      // Update active actions display
+      const active = actionPlayer.getPlayingActions();
+      document.getElementById('active-actions-list').textContent = active.length ? active.join(', ') : 'none';
+      const playingDiv = document.getElementById('playing-info');
+      playingDiv.innerHTML = active.length
+        ? active.map(a => `<div style="font-size:11px;color:#3fb950;margin:2px 0;">${a}</div>`).join('')
+        : '<div style="color:#8b949e;font-size:11px;">No actions playing</div>';
+
+      // Action output params
+      if (active.length) {
+        let html = '';
+        for (const [k,v] of actionOutput.params) {
+          if (!endoParams[k] || Math.abs(v - endoParams[k]) > 0.001) {
+            html += `<div class="param-row"><label>${k}</label><span class="val" style="color:#3fb950;">${v.toFixed(3)}</span></div>`;
+          }
+        }
+        document.getElementById('action-params').innerHTML = html || '<div style="color:#8b949e;font-size:11px;padding:4px;">No overrides</div>';
+      } else {
+        document.getElementById('action-params').innerHTML = '';
+      }
+
+      // Draw feature overlay
+      drawFeatureOverlay();
+    }
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    initLive2D();
+  </script>
+</body>
+</html>
