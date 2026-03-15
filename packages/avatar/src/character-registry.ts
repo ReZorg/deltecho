@@ -43,6 +43,15 @@ export interface CharacterManifest {
     scale: number;
     idleMotionGroup: string;
     hitAreas: string[];
+    /** Override texture atlas (mesh-painter output) */
+    textureOverride?: string;
+  };
+
+  /** Mesh-painter configuration for aesthetic overlay */
+  meshPainter?: {
+    enabled: boolean;
+    ambientEffects: boolean;
+    glowIntensity: number;
   };
 
   /** OCEAN personality */
@@ -281,6 +290,12 @@ const DTECHO_MANIFEST: CharacterManifest = {
     scale: 0.12,
     idleMotionGroup: "Idle",
     hitAreas: ["head", "body"],
+    textureOverride: "/models/miara/dte_overlay/texture_00_2048.png",
+  },
+  meshPainter: {
+    enabled: true,
+    ambientEffects: true,
+    glowIntensity: 0.8,
   },
   personality: {
     ocean: {

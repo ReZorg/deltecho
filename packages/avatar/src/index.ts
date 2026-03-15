@@ -158,3 +158,17 @@ export {
   type PlayingAction,
   type ActionOutput,
 } from "./action-sequence";
+
+// DTE Mesh Painter (aesthetic mapping from DTE profile to Miara body mesh)
+export {
+  DTE_TEXTURE_CONFIG,
+  ART_MESH_REPURPOSE_MAP,
+  DTE_AMBIENT_EFFECTS,
+  DTE_EXPRESSIONS,
+  DTE_COGNITIVE_EXPRESSION_MAP,
+  computeAmbientEffects,
+  applyDTEMeshPainter,
+  applyDTEExpression,
+  type AmbientEffect,
+  type ExpressionPreset,
+} from "./dte-mesh-painter";

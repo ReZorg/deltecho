@@ -27,6 +27,8 @@ export interface CubismModelInfo {
   scale?: number;
   /** Position offset */
   offset?: { x: number; y: number };
+  /** Override texture atlas path (mesh-painter DTE overlay) */
+  textureOverride?: string;
 }
 
 /**

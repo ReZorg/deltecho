@@ -398,6 +398,45 @@ export class PixiLive2DRenderer implements ICubismRenderer {
               // Add to stage
               this.app!.stage.addChild(model as unknown as Container);
 
+              // Apply texture override (mesh-painter DTE overlay)
+              if (modelInfo.textureOverride) {
+                try {
+                  const internalModel = (model as any).internalModel;
+                  if (internalModel?.coreModel) {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                      try {
+                        // Access the WebGL texture manager and replace texture 0
+                        const renderer = internalModel.renderer;
+                        if (renderer?.textures?.[0]) {
+                          const gl = renderer.gl;
+                          if (gl) {
+                            gl.bindTexture(gl.TEXTURE_2D, renderer.textures[0]);
+                            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+                            safeLog('[PixiLive2DRenderer] DTE texture override applied via WebGL');
+                          }
+                        } else {
+                          // Fallback: replace via PIXI texture if available
+                          const textures = (model as any).internalModel?.textureManagers;
+                          if (textures) {
+                            safeLog('[PixiLive2DRenderer] DTE texture override: PIXI fallback path');
+                          }
+                        }
+                      } catch (texErr) {
+                        safeLog(`[PixiLive2DRenderer] Texture override post-load error: ${texErr}`);
+                      }
+                    };
+                    img.onerror = () => {
+                      safeLog(`[PixiLive2DRenderer] Failed to load DTE texture: ${modelInfo.textureOverride}`);
+                    };
+                    img.src = modelInfo.textureOverride;
+                  }
+                } catch (texErr) {
+                  safeLog(`[PixiLive2DRenderer] Texture override error: ${texErr}`);
+                }
+              }
+
               // Start auto-blink
               this.startAutoBlinkLoop();
 
