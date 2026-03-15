@@ -6,6 +6,37 @@ import { getLogger } from "../../../../shared/logger";
 import { LLMService } from "../../utils/LLMService";
 
 const log = getLogger("render/DeepTreeEchoBot");
+const DTE_VERSION = "v6"; // Version marker for debugging
+
+// Robust error serializer that handles all edge cases
+function serializeError(error: unknown): string {
+  if (error === null) return "null";
+  if (error === undefined) return "undefined";
+  if (typeof error === "string") return error;
+  if (typeof error === "number" || typeof error === "boolean")
+    return String(error);
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  try {
+    const json = JSON.stringify(
+      error,
+      Object.getOwnPropertyNames(error as object),
+    );
+    if (json && json !== "{}" && json !== "[]") return json;
+  } catch {
+    /* ignore */
+  }
+  try {
+    const keys = Object.keys(error as object);
+    if (keys.length > 0) {
+      return keys
+        .map((k) => `${k}=${(error as Record<string, unknown>)[k]}`)
+        .join(", ");
+    }
+  } catch {
+    /* ignore */
+  }
+  return `[${typeof error}] ${String(error)}`;
+}
 
 // RAG memory store for conversation history
 interface MemoryEntry {
@@ -112,7 +143,9 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
   const llmService = LLMService.getInstance();
 
   // Debug status for visible indicator
-  const [debugStatus, setDebugStatus] = useState<string>("Initializing...");
+  const [debugStatus, setDebugStatus] = useState<string>(
+    `${DTE_VERSION} Initializing...`,
+  );
   const [lastEvent, setLastEvent] = useState<string>("");
   const [messageCount, setMessageCount] = useState(0);
 
@@ -305,10 +338,9 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
           log.info(`Bot responded in chat ${chatId}`);
         }
       } catch (error) {
-        const errMsg =
-          error instanceof Error ? error.message : JSON.stringify(error);
+        const errMsg = serializeError(error);
         log.error("Error handling message:", errMsg, error);
-        setDebugStatus(`Error: ${errMsg}`);
+        setDebugStatus(`${DTE_VERSION} Error: ${errMsg}`);
       } finally {
         isProcessing.current = false;
       }
@@ -335,12 +367,12 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
   // Listen for incoming messages from other contacts
   useEffect(() => {
     if (!accountId) {
-      setDebugStatus("No account selected");
+      setDebugStatus(`${DTE_VERSION} No account selected`);
       return;
     }
 
     log.info("Deep Tree Echo bot: listening for incoming messages");
-    setDebugStatus("Listening for messages...");
+    setDebugStatus(`${DTE_VERSION} Listening for messages...`);
 
     const cleanup = onDCEvent(accountId, "IncomingMsg", async (event) => {
       const { chatId, msgId } = event;
@@ -398,10 +430,9 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
             }
           }
         } catch (error) {
-          const errMsg =
-            error instanceof Error ? error.message : JSON.stringify(error);
+          const errMsg = serializeError(error);
           log.error("Error in MsgsChanged handler:", errMsg, error);
-          setDebugStatus(`MsgsChanged error: ${errMsg}`);
+          setDebugStatus(`${DTE_VERSION} MsgsChanged err: ${errMsg}`);
         }
       }, 500); // 500ms debounce
     });
