@@ -252,8 +252,8 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
         if (chatInfo.isContactRequest) return;
 
         // Determine if this is a self-chat (Saved Messages)
-        const isSelfChat =
-          chatInfo.chatType === "Single" && message.fromId === 1;
+        // isSelfTalk is a boolean on BasicChat that reliably identifies the self-chat
+        const isSelfChat = chatInfo.isSelfTalk === true;
 
         // For non-self chats, only respond to incoming messages (not our own)
         if (!isSelfChat && message.fromId === 1) return;
@@ -401,18 +401,9 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
               chatId,
             );
 
-            // Check if it's the Saved Messages chat (self-chat)
-            // In DeltaChat, self-chat has chatType "Single" and the contact is self
-            if (chatInfo.chatType === "Single") {
-              // Verify it's actually the self-chat by checking if the chat name
-              // indicates it's Saved Messages
-              const isSavedMessages =
-                chatInfo.name === "Saved Messages" ||
-                chatInfo.name === "Messages to Self";
-
-              if (isSavedMessages) {
-                await handleMessage(chatId, msgId);
-              }
+            // Use isSelfTalk to reliably detect Saved Messages chat
+            if (chatInfo.isSelfTalk) {
+              await handleMessage(chatId, msgId);
             }
           }
         } catch (error) {
