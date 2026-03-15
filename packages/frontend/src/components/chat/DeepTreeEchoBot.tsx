@@ -6,7 +6,7 @@ import { getLogger } from "../../../../shared/logger";
 import { LLMService } from "../../utils/LLMService";
 
 const log = getLogger("render/DeepTreeEchoBot");
-const DTE_VERSION = "v6"; // Version marker for debugging
+const DTE_VERSION = "v7"; // Version marker for debugging
 
 // Robust error serializer that handles all edge cases
 function serializeError(error: unknown): string {
@@ -410,31 +410,56 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
 
       responseTimer.current = setTimeout(async () => {
         try {
-          // Check if this is a self-chat message
-          const message = await BackendRemote.rpc.getMessage(accountId, msgId);
+          // First check if this is a self-chat
+          const chatInfo = await BackendRemote.rpc.getBasicChatInfo(
+            accountId,
+            chatId,
+          );
 
-          // Only process self-sent messages in self-chat (Saved Messages)
+          // Only process self-chat (Saved Messages) via MsgsChanged
           // IncomingMsg handler covers messages from others
-          if (message.fromId === 1) {
-            const chatInfo = await BackendRemote.rpc.getBasicChatInfo(
-              accountId,
-              chatId,
-            );
+          if (!chatInfo.isSelfTalk) return;
 
-            // Use isSelfTalk to reliably detect Saved Messages chat
-            if (chatInfo.isSelfTalk) {
-              log.info(
-                `Self-chat message detected: chat=${chatId}, msg=${msgId}`,
-              );
-              await handleMessage(chatId, msgId);
-            }
+          // Get the latest message IDs from the chat
+          // The msgId from the event may be stale (temporary ID replaced by final ID)
+          const messageIds = await BackendRemote.rpc.getMessageIds(
+            accountId,
+            chatId,
+            false,
+            false,
+          );
+
+          if (messageIds.length === 0) {
+            log.info("No messages in self-chat, skipping");
+            return;
+          }
+
+          // Use the LAST message in the chat (most recent)
+          const latestMsgId = messageIds[messageIds.length - 1];
+          log.info(
+            `Self-chat: event msgId=${msgId}, latest msgId=${latestMsgId}`,
+          );
+          setLastEvent(`Self-chat: evt=${msgId}, latest=${latestMsgId}`);
+
+          // Get the latest message
+          const message = await BackendRemote.rpc.getMessage(
+            accountId,
+            latestMsgId,
+          );
+
+          // Only process self-sent messages
+          if (message.fromId === 1) {
+            log.info(
+              `Self-chat message detected: chat=${chatId}, msg=${latestMsgId}`,
+            );
+            await handleMessage(chatId, latestMsgId);
           }
         } catch (error) {
           const errMsg = serializeError(error);
           log.error("Error in MsgsChanged handler:", errMsg, error);
           setDebugStatus(`${DTE_VERSION} MsgsChanged err: ${errMsg}`);
         }
-      }, 500); // 500ms debounce
+      }, 800); // 800ms debounce - longer to ensure message is committed
     });
 
     return () => {
