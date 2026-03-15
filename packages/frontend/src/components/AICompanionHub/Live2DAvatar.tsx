@@ -147,26 +147,7 @@ export const Live2DAvatar: React.FC<Live2DAvatarComponentProps> = ({
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const initializeAvatar = async () => {
-      if (!containerRef.current) {
-        console.error(
-          "[Live2DAvatar] containerRef.current is null - cannot initialize",
-        );
-        return;
-      }
-
-      // Log container dimensions for debugging
-      const rect = containerRef.current.getBoundingClientRect();
-      console.log(
-        `[Live2DAvatar] Container dimensions: ${rect.width}x${
-          rect.height
-        }, visible: ${rect.width > 0 && rect.height > 0}`,
-      );
-      console.log(
-        `[Live2DAvatar] Container parent: ${containerRef.current.parentElement
-          ?.tagName}, parent dimensions: ${containerRef.current.parentElement?.getBoundingClientRect()
-          .width}x${containerRef.current.parentElement?.getBoundingClientRect()
-          .height}`,
-      );
+      if (!containerRef.current) return;
 
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
@@ -188,18 +169,11 @@ export const Live2DAvatar: React.FC<Live2DAvatarComponentProps> = ({
       }, 60000); // 60 second timeout for texture download
 
       try {
-        console.log(
-          "[Live2DAvatar] Starting dynamic import of @deltecho/avatar...",
-        );
         // Dynamic import to avoid SSR issues
         const { Live2DAvatarManager } = await import("@deltecho/avatar");
-        console.log("[Live2DAvatar] Import successful, creating manager...");
 
         // Create manager instance
         managerRef.current = new Live2DAvatarManager();
-        console.log(
-          `[Live2DAvatar] Initializing with model=${modelUrl}, width=${width}, height=${height}, scale=${scale}`,
-        );
 
         // Initialize with props
         const controller = await managerRef.current.initialize(
@@ -238,7 +212,6 @@ export const Live2DAvatar: React.FC<Live2DAvatarComponentProps> = ({
         controllerRef.current = controller;
         onControllerReady?.(controller);
       } catch (error) {
-        console.error("[Live2DAvatar] Initialization failed:", error);
         if (mounted) {
           if (timeoutId) clearTimeout(timeoutId);
           const err = error instanceof Error ? error : new Error(String(error));
