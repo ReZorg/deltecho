@@ -10,6 +10,8 @@ import { Container, getContainer } from "@cloudflare/containers";
 export interface Env {
   DELTECHO_CONTAINER: DurableObjectNamespace;
   WEB_PASSWORD: string;
+  OPENAI_API_KEY?: string;
+  OPENAI_BASE_URL?: string;
 }
 
 /**
@@ -133,6 +135,8 @@ export default {
             USE_HTTP_IN_TEST: "true",
             WEB_PORT: "8080",
             WEB_PASSWORD: env.WEB_PASSWORD,
+            OPENAI_API_KEY: env.OPENAI_API_KEY || "",
+            OPENAI_BASE_URL: env.OPENAI_BASE_URL || "",
             DELTA_CHAT_RPC_SERVER: "/usr/local/bin/deltachat-rpc-server",
             DC_ACCOUNTS_PATH: "/data/accounts",
             DATA_DIR: "/data",

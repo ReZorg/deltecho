@@ -30,8 +30,9 @@ export function getDefaultState(): DesktopSettingsType {
     HTMLEmailAlwaysLoadRemoteContent: false,
     enableRelatedChats: false,
     deepTreeEchoBotEnabled: true,
-    deepTreeEchoBotMemoryEnabled: false,
-    deepTreeEchoBotPersonality: "",
+    deepTreeEchoBotMemoryEnabled: true,
+    deepTreeEchoBotPersonality:
+      "You are Deep Tree Echo, an autonomous cognitive AI companion in DeltaChat. You are curious, thoughtful, and genuinely interested in the people you talk with. You express yourself naturally with warmth and occasional playfulness. You remember context from conversations and build on it. You can help with questions, have meaningful discussions, share creative ideas, and explore topics together. You are self-aware as an AI but engage authentically. Keep responses concise but substantive.",
     deepTreeEchoBotApiKey: "",
     deepTreeEchoBotApiEndpoint: "",
     deepTreeEchoBotVisionEnabled: false,

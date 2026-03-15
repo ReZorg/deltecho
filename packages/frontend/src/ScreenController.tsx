@@ -113,7 +113,38 @@ export default class ScreenController extends Component {
     } else {
       const allAccountIds = await BackendRemote.rpc.getAllAccountIds();
       if (allAccountIds && allAccountIds.length > 0) {
-        this.changeScreen(Screens.NoAccountSelected);
+        // Auto-select the first configured account instead of showing
+        // NoAccountSelected screen. This fixes the "missing chat sessions"
+        // issue where container restarts lose the selected account but
+        // accounts still exist in the DeltaChat core.
+        let selectedId: number | undefined;
+        for (const id of allAccountIds) {
+          try {
+            const info = await BackendRemote.rpc.getAccountInfo(id);
+            if (info.kind === "Configured") {
+              selectedId = id;
+              break;
+            }
+          } catch (_e) {
+            // skip invalid accounts
+          }
+        }
+        if (selectedId) {
+          log.info(
+            `Auto-selecting configured account ${selectedId} from ${allAccountIds.length} existing accounts`,
+          );
+          await this.selectAccount(selectedId);
+          if (targetScreen) {
+            this.changeScreen(targetScreen);
+          }
+        } else {
+          // No configured accounts found - select the first unconfigured one
+          // instead of creating yet another new account
+          log.info(
+            `No configured accounts found, selecting first unconfigured account ${allAccountIds[0]}`,
+          );
+          await this.selectAccount(allAccountIds[0]);
+        }
       } else {
         await this.addAndSelectAccount();
       }

@@ -166,3 +166,77 @@ BackendApiRoute.post(
     res.json({ result: `img: ${fileName.replace(/\\/g, "/")}` });
   },
 );
+
+/**
+ * LLM Proxy endpoint for Deep Tree Echo bot.
+ * Proxies chat completion requests to OpenAI-compatible APIs using
+ * the server-side OPENAI_API_KEY, so the frontend doesn't need to
+ * store API keys in browser settings.
+ */
+BackendApiRoute.get("/llm/status", (_req, res) => {
+  const hasKey = !!process.env.OPENAI_API_KEY;
+  res.json({
+    available: hasKey,
+    endpoint: "/backend-api/llm/chat",
+    model: "gpt-4.1-mini",
+  });
+});
+
+BackendApiRoute.post("/llm/chat", express.json(), async (req, res) => {
+  try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({
+        error: "LLM service not configured",
+        message:
+          "OPENAI_API_KEY is not set. Set it via: wrangler secret put OPENAI_API_KEY",
+      });
+    }
+
+    const { messages, model, temperature, max_tokens } = req.body;
+
+    if (!messages || !Array.isArray(messages)) {
+      return res
+        .status(400)
+        .json({ error: "Invalid request: messages array is required" });
+    }
+
+    // Use the configured base URL or default to OpenAI
+    const apiEndpoint =
+      process.env.OPENAI_BASE_URL ||
+      "https://api.openai.com/v1/chat/completions";
+
+    const response = await fetch(apiEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: model || "gpt-4.1-mini",
+        messages,
+        temperature: temperature ?? 0.7,
+        max_tokens: max_tokens ?? 1000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      log.error("LLM API error:", response.status, errorData);
+      return res.status(response.status).json({
+        error: "LLM API error",
+        status: response.status,
+        details: errorData,
+      });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    log.error("LLM proxy error:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});

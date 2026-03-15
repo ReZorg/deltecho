@@ -37,15 +37,23 @@ export interface LLMConfig {
   maxTokens?: number;
 }
 
+interface LLMProxyStatus {
+  available: boolean;
+  endpoint: string;
+  model: string;
+}
+
 export class LLMService {
   private static instance: LLMService;
   private config: LLMConfig = {
     apiKey: "",
     apiEndpoint: "https://api.openai.com/v1/chat/completions",
-    model: "gpt-3.5-turbo",
+    model: "gpt-4.1-mini",
     temperature: 0.7,
     maxTokens: 1000,
   };
+  private proxyStatus: LLMProxyStatus | null = null;
+  private proxyChecked = false;
 
   private constructor() {}
 
@@ -60,19 +68,108 @@ export class LLMService {
     this.config = { ...this.config, ...config };
   }
 
+  /**
+   * Check if the server-side LLM proxy is available.
+   * This allows the bot to work without users configuring API keys.
+   */
+  private async checkProxyStatus(): Promise<LLMProxyStatus | null> {
+    if (this.proxyChecked) {
+      return this.proxyStatus;
+    }
+    try {
+      const response = await fetch("/backend-api/llm/status");
+      if (response.ok) {
+        this.proxyStatus = await response.json();
+        log.info("LLM proxy status:", this.proxyStatus);
+      }
+    } catch (error) {
+      log.debug("LLM proxy not available:", error);
+      this.proxyStatus = null;
+    }
+    this.proxyChecked = true;
+    return this.proxyStatus;
+  }
+
+  /**
+   * Check if the LLM service is available (either via proxy or direct API key)
+   */
+  public async isAvailable(): Promise<boolean> {
+    if (this.config.apiKey) {
+      return true;
+    }
+    const proxy = await this.checkProxyStatus();
+    return proxy?.available ?? false;
+  }
+
   public async generateResponse(
     messages: ChatMessage[],
     overrideConfig?: Partial<LLMConfig>,
   ): Promise<string> {
-    try {
-      const config = { ...this.config, ...overrideConfig };
+    const config = { ...this.config, ...overrideConfig };
 
-      if (!config.apiKey) {
-        throw new Error("API Key is not configured");
+    // If no direct API key is configured, try the server-side proxy
+    if (!config.apiKey) {
+      return this.generateResponseViaProxy(messages, config);
+    }
+
+    // Direct API call with user-provided API key
+    return this.generateResponseDirect(messages, config);
+  }
+
+  /**
+   * Generate response via the server-side LLM proxy endpoint.
+   * This uses the OPENAI_API_KEY configured on the server.
+   */
+  private async generateResponseViaProxy(
+    messages: ChatMessage[],
+    config: LLMConfig,
+  ): Promise<string> {
+    try {
+      const proxy = await this.checkProxyStatus();
+      if (!proxy?.available) {
+        throw new Error(
+          "LLM service not available. Configure OPENAI_API_KEY on the server or set an API key in settings.",
+        );
       }
 
+      const response = await fetch(proxy.endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages,
+          model: config.model || proxy.model,
+          temperature: config.temperature,
+          max_tokens: config.maxTokens,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `LLM Proxy Error: ${response.status} - ${JSON.stringify(errorData)}`,
+        );
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      log.error("Error generating response via proxy:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate response via direct API call with user-provided API key.
+   */
+  private async generateResponseDirect(
+    messages: ChatMessage[],
+    config: LLMConfig,
+  ): Promise<string> {
+    try {
       const requestPayload: OpenAIRequestParams = {
-        model: config.model || "gpt-3.5-turbo",
+        model: config.model || "gpt-4.1-mini",
         messages,
         temperature: config.temperature,
         max_tokens: config.maxTokens,
