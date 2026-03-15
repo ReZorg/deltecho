@@ -491,28 +491,37 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled }) => {
       });
   }, [accountId, llmService]);
 
-  // Render a small debug indicator in the corner
+  // Render a minimal status dot - expands on hover to show debug info
   return (
     <div
+      className="dte-status-indicator"
       style={{
         position: "fixed",
         bottom: "4px",
         left: "4px",
         zIndex: 9999,
-        background: "rgba(0,0,0,0.7)",
-        color: accountId ? "#0f0" : "#f00",
-        padding: "2px 6px",
-        borderRadius: "4px",
-        fontSize: "10px",
-        fontFamily: "monospace",
-        maxWidth: "300px",
-        pointerEvents: "none",
+        display: "flex",
+        alignItems: "center",
+        gap: "4px",
+        pointerEvents: "auto",
+        cursor: "default",
       }}
     >
-      DTE: {debugStatus}
-      {lastEvent && (
-        <span style={{ color: "#888", display: "block" }}>{lastEvent}</span>
-      )}
+      <div
+        style={{
+          width: "8px",
+          height: "8px",
+          borderRadius: "50%",
+          background: accountId ? "#0f0" : "#f00",
+          boxShadow: accountId
+            ? "0 0 4px rgba(0,255,0,0.5)"
+            : "0 0 4px rgba(255,0,0,0.5)",
+          flexShrink: 0,
+        }}
+        title={`DTE ${DTE_VERSION}: ${debugStatus}${
+          lastEvent ? "\n" + lastEvent : ""
+        }`}
+      />
     </div>
   );
 };
