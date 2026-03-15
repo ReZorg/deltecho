@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeltEcho Avatar - Endocrine Expression Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif;
+      display: flex; height: 100vh; overflow: hidden;
+    }
+    #avatar-container { 
+      flex: 1; position: relative; background: #16213e;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #avatar-canvas { width: 100%; height: 100%; }
+    #controls { 
+      width: 380px; padding: 16px; overflow-y: auto; background: #0f3460;
+      border-left: 2px solid #533483;
+    }
+    h1 { font-size: 18px; color: #e94560; margin-bottom: 12px; }
+    h2 { font-size: 14px; color: #533483; margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+    .hormone-bar {
+      display: flex; align-items: center; margin: 4px 0; font-size: 12px;
+    }
+    .hormone-bar label { width: 100px; text-align: right; padding-right: 8px; }
+    .hormone-bar .bar-bg {
+      flex: 1; height: 14px; background: #1a1a2e; border-radius: 7px; overflow: hidden; position: relative;
+    }
+    .hormone-bar .bar-fill {
+      height: 100%; border-radius: 7px; transition: width 0.3s ease;
+    }
+    .hormone-bar .bar-val { width: 40px; text-align: right; font-size: 11px; padding-left: 4px; }
+    .expression-btn {
+      display: inline-block; padding: 6px 12px; margin: 3px; border: 1px solid #533483;
+      background: #16213e; color: #e0e0e0; border-radius: 4px; cursor: pointer;
+      font-size: 12px; transition: all 0.2s;
+    }
+    .expression-btn:hover { background: #533483; }
+    .expression-btn.active { background: #e94560; border-color: #e94560; }
+    .param-row { display: flex; align-items: center; margin: 2px 0; font-size: 11px; }
+    .param-row label { width: 140px; text-align: right; padding-right: 6px; color: #aaa; }
+    .param-row .val { color: #e94560; font-weight: bold; width: 40px; }
+    #status { 
+      position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7);
+      padding: 8px 12px; border-radius: 6px; font-size: 12px; z-index: 10;
+    }
+    #status .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    #status .dot.ok { background: #4caf50; }
+    #status .dot.loading { background: #ff9800; }
+    #status .dot.error { background: #f44336; }
+    .cognitive-state {
+      background: #1a1a2e; border-radius: 6px; padding: 8px; margin: 8px 0;
+      font-size: 11px;
+    }
+    .cognitive-state .row { display: flex; justify-content: space-between; margin: 2px 0; }
+    .cognitive-state .label { color: #888; }
+    .cognitive-state .value { color: #e94560; font-weight: bold; }
+    #emotion-display {
+      text-align: center; font-size: 24px; margin: 8px 0; padding: 12px;
+      background: #1a1a2e; border-radius: 8px; border: 1px solid #533483;
+    }
+    .slider-row { display: flex; align-items: center; margin: 4px 0; }
+    .slider-row label { width: 80px; font-size: 12px; }
+    .slider-row input[type="range"] { flex: 1; }
+    .slider-row .val { width: 40px; font-size: 11px; text-align: right; }
+  </style>
+</head>
+<body>
+  <div id="avatar-container">
+    <canvas id="avatar-canvas"></canvas>
+    <div id="status">
+      <span class="dot loading" id="status-dot"></span>
+      <span id="status-text">Loading Live2D model...</span>
+    </div>
+  </div>
+  <div id="controls">
+    <h1>DeltEcho Endocrine Avatar</h1>
+    
+    <div id="emotion-display">Neutral</div>
+
+    <h2>Cognitive State</h2>
+    <div class="cognitive-state" id="cog-state">
+      <div class="row"><span class="label">Valence</span><span class="value" id="cog-valence">0.00</span></div>
+      <div class="row"><span class="label">Arousal</span><span class="value" id="cog-arousal">0.00</span></div>
+      <div class="row"><span class="label">Dominance</span><span class="value" id="cog-dominance">0.50</span></div>
+      <div class="row"><span class="label">Reservoir Energy</span><span class="value" id="cog-reservoir">0.50</span></div>
+      <div class="row"><span class="label">Cycle Phase</span><span class="value" id="cog-phase">idle</span></div>
+    </div>
+
+    <h2>Expression Triggers</h2>
+    <div id="expression-buttons"></div>
+
+    <h2>Manual Cognitive Input</h2>
+    <div class="slider-row">
+      <label>Valence</label>
+      <input type="range" id="sl-valence" min="-1" max="1" step="0.01" value="0">
+      <span class="val" id="sl-valence-val">0.00</span>
+    </div>
+    <div class="slider-row">
+      <label>Arousal</label>
+      <input type="range" id="sl-arousal" min="0" max="1" step="0.01" value="0">
+      <span class="val" id="sl-arousal-val">0.00</span>
+    </div>
+    <div class="slider-row">
+      <label>Dominance</label>
+      <input type="range" id="sl-dominance" min="0" max="1" step="0.01" value="0.5">
+      <span class="val" id="sl-dominance-val">0.50</span>
+    </div>
+
+    <h2>Hormone Levels (16 channels)</h2>
+    <div id="hormone-bars"></div>
+
+    <h2>Active Cubism Parameters</h2>
+    <div id="cubism-params"></div>
+  </div>
+
+  <script src="./live2dcubismcore.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.4.2/dist/pixi.min.js"></script>
+  <script src="./pixi-live2d-cubism4.min.js"></script>
+  <script>
+    // ============================================================
+    // ENDOCRINE SYSTEM - 16-channel hormone bus
+    // ============================================================
+    const HORMONE_CHANNELS = [
+      { name: 'cortisol',      color: '#f44336', gland: 'HPA',           decay: 0.02 },
+      { name: 'adrenaline',    color: '#ff5722', gland: 'HPA',           decay: 0.05 },
+      { name: 'dopamine',      color: '#ff9800', gland: 'Dopaminergic',  decay: 0.03 },
+      { name: 'serotonin',     color: '#ffc107', gland: 'Serotonergic',  decay: 0.01 },
+      { name: 'norepinephrine',color: '#ffeb3b', gland: 'Noradrenergic', decay: 0.04 },
+      { name: 'oxytocin',      color: '#cddc39', gland: 'Oxytocinergic', decay: 0.015 },
+      { name: 'endorphin',     color: '#8bc34a', gland: 'Opioidergic',   decay: 0.02 },
+      { name: 'melatonin',     color: '#4caf50', gland: 'Circadian',     decay: 0.005 },
+      { name: 'testosterone',  color: '#009688', gland: 'Gonadal',       decay: 0.008 },
+      { name: 'estrogen',      color: '#00bcd4', gland: 'Gonadal',       decay: 0.008 },
+      { name: 'insulin',       color: '#03a9f4', gland: 'Pancreatic',    decay: 0.03 },
+      { name: 'glucagon',      color: '#2196f3', gland: 'Pancreatic',    decay: 0.03 },
+      { name: 'thyroid_t3',    color: '#3f51b5', gland: 'Thyroid',       decay: 0.01 },
+      { name: 'thyroid_t4',    color: '#673ab7', gland: 'Thyroid',       decay: 0.008 },
+      { name: 'histamine',     color: '#9c27b0', gland: 'Immune',        decay: 0.04 },
+      { name: 'anandamide',    color: '#e91e63', gland: 'Endocannabinoid', decay: 0.025 },
+    ];
+
+    class EndocrineSystem {
+      constructor() {
+        this.levels = {};
+        HORMONE_CHANNELS.forEach(h => this.levels[h.name] = 0.0);
+        // Set baseline levels
+        this.levels.serotonin = 0.5;
+        this.levels.dopamine = 0.3;
+        this.levels.thyroid_t3 = 0.4;
+        this.levels.thyroid_t4 = 0.4;
+      }
+
+      inject(hormone, amount) {
+        if (this.levels[hormone] !== undefined) {
+          this.levels[hormone] = Math.min(1.0, Math.max(0.0, this.levels[hormone] + amount));
+        }
+      }
+
+      tick(dt) {
+        HORMONE_CHANNELS.forEach(h => {
+          const baseline = h.name === 'serotonin' ? 0.5 : 
+                          h.name === 'dopamine' ? 0.3 :
+                          h.name.startsWith('thyroid') ? 0.4 : 0.0;
+          const diff = this.levels[h.name] - baseline;
+          this.levels[h.name] -= diff * h.decay * dt;
+          this.levels[h.name] = Math.max(0.0, Math.min(1.0, this.levels[h.name]));
+        });
+      }
+
+      getSnapshot() { return { ...this.levels }; }
+    }
+
+    // ============================================================
+    // COGNITIVE DRIVER - maps cognitive state to hormone injections
+    // ============================================================
+    function driveCognitive(endo, valence, arousal, dominance) {
+      // Positive valence → dopamine + serotonin + oxytocin
+      if (valence > 0) {
+        endo.inject('dopamine', valence * 0.15);
+        endo.inject('serotonin', valence * 0.1);
+        endo.inject('oxytocin', valence * 0.08);
+        endo.inject('endorphin', valence * 0.05);
+      }
+      // Negative valence → cortisol + norepinephrine
+      if (valence < 0) {
+        endo.inject('cortisol', Math.abs(valence) * 0.12);
+        endo.inject('norepinephrine', Math.abs(valence) * 0.1);
+      }
+      // High arousal → adrenaline + norepinephrine
+      if (arousal > 0.5) {
+        endo.inject('adrenaline', (arousal - 0.5) * 0.2);
+        endo.inject('norepinephrine', (arousal - 0.5) * 0.15);
+      }
+      // Low arousal → melatonin + anandamide
+      if (arousal < 0.3) {
+        endo.inject('melatonin', (0.3 - arousal) * 0.1);
+        endo.inject('anandamide', (0.3 - arousal) * 0.08);
+      }
+      // High dominance → testosterone
+      if (dominance > 0.6) {
+        endo.inject('testosterone', (dominance - 0.6) * 0.1);
+      }
+    }
+
+    // ============================================================
+    // EXPRESSION BRIDGE - maps hormones to Cubism parameters
+    // ============================================================
+    const EXPRESSION_PRESETS = {
+      'Neutral':    { valence: 0,    arousal: 0.1,  dominance: 0.5 },
+      'Joy':        { valence: 0.8,  arousal: 0.6,  dominance: 0.6 },
+      'Sadness':    { valence: -0.7, arousal: 0.2,  dominance: 0.3 },
+      'Anger':      { valence: -0.6, arousal: 0.9,  dominance: 0.9 },
+      'Fear':       { valence: -0.8, arousal: 0.8,  dominance: 0.2 },
+      'Surprise':   { valence: 0.3,  arousal: 0.9,  dominance: 0.4 },
+      'Disgust':    { valence: -0.5, arousal: 0.4,  dominance: 0.7 },
+      'Contempt':   { valence: -0.3, arousal: 0.3,  dominance: 0.8 },
+      'Excitement': { valence: 0.9,  arousal: 0.95, dominance: 0.7 },
+      'Calm':       { valence: 0.4,  arousal: 0.1,  dominance: 0.5 },
+      'Curious':    { valence: 0.3,  arousal: 0.5,  dominance: 0.5 },
+      'Thinking':   { valence: 0.1,  arousal: 0.3,  dominance: 0.6 },
+    };
+
+    function hormoneToParams(levels) {
+      const params = {};
+      // Eyes
+      const eyeOpenBase = 0.7;
+      const surprise = levels.adrenaline * 0.3 + levels.norepinephrine * 0.2;
+      const sleepy = levels.melatonin * 0.4 + levels.anandamide * 0.3;
+      params['ParamEyeLOpen'] = Math.min(1.0, Math.max(0.0, eyeOpenBase + surprise - sleepy));
+      params['ParamEyeROpen'] = params['ParamEyeLOpen'];
+      
+      // Eyebrows
+      const worry = levels.cortisol * 0.3;
+      const anger = levels.norepinephrine * 0.3 * (1 - levels.serotonin);
+      const happy = levels.dopamine * 0.2 + levels.oxytocin * 0.1;
+      params['ParamBrowLY'] = happy - worry + surprise * 0.5;
+      params['ParamBrowRY'] = params['ParamBrowLY'];
+      params['ParamBrowLAngle'] = -worry * 0.5 + anger * 0.3;
+      params['ParamBrowRAngle'] = params['ParamBrowLAngle'];
+      
+      // Mouth
+      const smile = (levels.dopamine - 0.3) * 0.5 + levels.oxytocin * 0.3 + levels.endorphin * 0.2;
+      params['ParamMouthForm'] = Math.max(-1, Math.min(1, smile));
+      params['ParamMouthOpenY'] = surprise * 0.4 + Math.max(0, levels.adrenaline - 0.5) * 0.3;
+      
+      // Body
+      const energy = levels.adrenaline * 0.3 + levels.dopamine * 0.2 - levels.melatonin * 0.3;
+      params['ParamBodyAngleX'] = (Math.sin(Date.now() / 3000) * 3) * (0.5 + energy);
+      params['ParamBodyAngleY'] = (Math.sin(Date.now() / 4000) * 2) * (0.5 + energy);
+      params['ParamBodyAngleZ'] = (Math.sin(Date.now() / 5000) * 1.5) * (0.5 + energy);
+      
+      // Head angle - slight tilt based on curiosity/thinking
+      const curious = levels.dopamine * 0.15;
+      params['ParamAngleX'] = Math.sin(Date.now() / 2500) * (5 + curious * 10);
+      params['ParamAngleY'] = Math.sin(Date.now() / 3500) * (3 + curious * 5);
+      params['ParamAngleZ'] = Math.sin(Date.now() / 6000) * 2;
+      
+      // Breathing
+      params['ParamBreath'] = (Math.sin(Date.now() / 2000) + 1) * 0.5 * (0.5 + energy * 0.5);
+      
+      return params;
+    }
+
+    function detectEmotion(levels) {
+      // Score each emotion based on hormone profile match
+      const scores = {
+        'Excitement': (levels.adrenaline * 0.4 + levels.dopamine * 0.4 - levels.cortisol * 0.3),
+        'Fear':       (levels.cortisol * 0.4 + levels.adrenaline * 0.3 - levels.testosterone * 0.3),
+        'Anger':      (levels.norepinephrine * 0.3 + levels.cortisol * 0.2 + levels.testosterone * 0.3 - levels.oxytocin * 0.2),
+        'Sadness':    (levels.cortisol * 0.3 - levels.dopamine * 0.3 - levels.serotonin * 0.2 + levels.melatonin * 0.1),
+        'Joy':        (levels.dopamine * 0.3 + levels.oxytocin * 0.3 + levels.endorphin * 0.2 - levels.cortisol * 0.2),
+        'Surprise':   (levels.adrenaline * 0.4 + levels.norepinephrine * 0.2 - levels.melatonin * 0.2),
+        'Calm':       (levels.serotonin * 0.3 + levels.anandamide * 0.2 + levels.melatonin * 0.2 - levels.adrenaline * 0.3),
+        'Curious':    (levels.dopamine * 0.3 + levels.norepinephrine * 0.1 - levels.cortisol * 0.2 - levels.melatonin * 0.1),
+        'Neutral':    0.05,
+      };
+      let best = 'Neutral', bestScore = scores['Neutral'];
+      for (const [emotion, score] of Object.entries(scores)) {
+        if (score > bestScore) { best = emotion; bestScore = score; }
+      }
+      return best;
+    }
+
+    // ============================================================
+    // UI SETUP
+    // ============================================================
+    const endocrine = new EndocrineSystem();
+    let currentModel = null;
+    let activeExpression = 'Neutral';
+
+    // Build hormone bars
+    const hormoneBarsDiv = document.getElementById('hormone-bars');
+    HORMONE_CHANNELS.forEach(h => {
+      const row = document.createElement('div');
+      row.className = 'hormone-bar';
+      row.innerHTML = `
+        <label>${h.name}</label>
+        <div class="bar-bg"><div class="bar-fill" id="bar-${h.name}" style="width:0%;background:${h.color}"></div></div>
+        <span class="bar-val" id="val-${h.name}">0.00</span>
+      `;
+      hormoneBarsDiv.appendChild(row);
+    });
+
+    // Build expression buttons
+    const exprBtnsDiv = document.getElementById('expression-buttons');
+    Object.keys(EXPRESSION_PRESETS).forEach(name => {
+      const btn = document.createElement('button');
+      btn.className = 'expression-btn';
+      btn.textContent = name;
+      btn.onclick = () => {
+        document.querySelectorAll('.expression-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeExpression = name;
+        const preset = EXPRESSION_PRESETS[name];
+        document.getElementById('sl-valence').value = preset.valence;
+        document.getElementById('sl-arousal').value = preset.arousal;
+        document.getElementById('sl-dominance').value = preset.dominance;
+        document.getElementById('sl-valence-val').textContent = preset.valence.toFixed(2);
+        document.getElementById('sl-arousal-val').textContent = preset.arousal.toFixed(2);
+        document.getElementById('sl-dominance-val').textContent = preset.dominance.toFixed(2);
+      };
+      exprBtnsDiv.appendChild(btn);
+    });
+
+    // Slider listeners
+    ['valence', 'arousal', 'dominance'].forEach(name => {
+      const sl = document.getElementById(`sl-${name}`);
+      sl.addEventListener('input', () => {
+        document.getElementById(`sl-${name}-val`).textContent = parseFloat(sl.value).toFixed(2);
+      });
+    });
+
+    // ============================================================
+    // LIVE2D MODEL LOADING
+    // ============================================================
+    const MODEL_URL = './models/miara/miara_pro_t03.model3.json';
+
+    async function initLive2D() {
+      const statusDot = document.getElementById('status-dot');
+      const statusText = document.getElementById('status-text');
+      
+      try {
+        const canvas = document.getElementById('avatar-canvas');
+        const app = new PIXI.Application({
+          view: canvas,
+          autoStart: true,
+          resizeTo: canvas.parentElement,
+          backgroundAlpha: 0,
+        });
+
+        statusText.textContent = 'Loading model...';
+        
+        const model = await PIXI.live2d.Live2DModel.from(MODEL_URL);
+        currentModel = model;
+        
+        app.stage.addChild(model);
+        
+        // Scale and center
+        const scale = Math.min(
+          canvas.parentElement.clientWidth / model.width * 0.8,
+          canvas.parentElement.clientHeight / model.height * 0.9
+        );
+        model.scale.set(scale);
+        model.x = (canvas.parentElement.clientWidth - model.width * scale) / 2;
+        model.y = (canvas.parentElement.clientHeight - model.height * scale) / 2 + 50;
+        
+        // Enable mouse tracking
+        model.anchor.set(0.5, 0.5);
+        model.x = canvas.parentElement.clientWidth / 2;
+        model.y = canvas.parentElement.clientHeight / 2 + 50;
+        
+        // Track mouse for eye/head following
+        canvas.parentElement.addEventListener('mousemove', (e) => {
+          const rect = canvas.parentElement.getBoundingClientRect();
+          const x = (e.clientX - rect.left) / rect.width;
+          const y = (e.clientY - rect.top) / rect.height;
+          model.focus(x * rect.width, y * rect.height);
+        });
+
+        statusDot.className = 'dot ok';
+        statusText.textContent = 'Model loaded - Endocrine system active';
+        
+        // Start update loop
+        app.ticker.add(() => updateLoop());
+        
+      } catch (err) {
+        statusDot.className = 'dot error';
+        statusText.textContent = 'Error: ' + err.message;
+        console.error('Live2D init error:', err);
+      }
+    }
+
+    // ============================================================
+    // UPDATE LOOP
+    // ============================================================
+    let lastTime = Date.now();
+    const cubismParamsDiv = document.getElementById('cubism-params');
+
+    function updateLoop() {
+      const now = Date.now();
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+
+      // Read sliders
+      const valence = parseFloat(document.getElementById('sl-valence').value);
+      const arousal = parseFloat(document.getElementById('sl-arousal').value);
+      const dominance = parseFloat(document.getElementById('sl-dominance').value);
+
+      // Update cognitive state display
+      document.getElementById('cog-valence').textContent = valence.toFixed(2);
+      document.getElementById('cog-arousal').textContent = arousal.toFixed(2);
+      document.getElementById('cog-dominance').textContent = dominance.toFixed(2);
+
+      // Drive endocrine system from cognitive state
+      driveCognitive(endocrine, valence, arousal, dominance);
+      
+      // Tick endocrine decay
+      endocrine.tick(dt * 30); // Moderate speed for responsive but smooth transitions
+
+      // Get hormone snapshot
+      const levels = endocrine.getSnapshot();
+
+      // Update hormone bar UI
+      HORMONE_CHANNELS.forEach(h => {
+        const val = levels[h.name];
+        document.getElementById(`bar-${h.name}`).style.width = (val * 100) + '%';
+        document.getElementById(`val-${h.name}`).textContent = val.toFixed(2);
+      });
+
+      // Detect emotion
+      const emotion = detectEmotion(levels);
+      document.getElementById('emotion-display').textContent = emotion;
+
+      // Map hormones to Cubism parameters
+      const params = hormoneToParams(levels);
+
+      // Apply to model
+      if (currentModel && currentModel.internalModel) {
+        const coreModel = currentModel.internalModel.coreModel;
+        let paramHtml = '';
+        Object.entries(params).forEach(([name, value]) => {
+          const idx = coreModel._model?.parameters?.ids?.indexOf(name);
+          if (idx !== undefined && idx >= 0) {
+            coreModel.setParameterValueById(name, value);
+          }
+          paramHtml += `<div class="param-row"><label>${name}</label><span class="val">${typeof value === 'number' ? value.toFixed(3) : value}</span></div>`;
+        });
+        cubismParamsDiv.innerHTML = paramHtml;
+      }
+    }
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    initLive2D();
+  </script>
+</body>
+</html>
