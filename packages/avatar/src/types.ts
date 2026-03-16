@@ -5,6 +5,17 @@
  */
 
 /**
+ * Minimal interface for a Cubism model's core parameter API.
+ * Used by dte-mesh-painter and other modules that need to set
+ * Live2D Cubism model parameters by ID at runtime.
+ */
+export interface CubismModel {
+  setParameterValueById(id: string, value: number): void;
+  getParameterValueById?(id: string): number;
+  getParameterCount?(): number;
+}
+
+/**
  * Avatar expressions - visual states the avatar can display
  */
 export type Expression =

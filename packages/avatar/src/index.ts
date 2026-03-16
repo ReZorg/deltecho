@@ -7,6 +7,7 @@
 
 // Types
 export {
+  CubismModel,
   Expression,
   EmotionalVector,
   AvatarState,

@@ -36,6 +36,9 @@ import type {
 
 // Endocrine-driven character system
 type CharacterInstanceType = import("@deltecho/avatar").CharacterInstance;
+// DreamGen narrative adapter type
+type DreamGenNarrativeAdapterType = import("@deltecho/cognitive").DreamGenNarrativeAdapter;
+type NarrativeResultType = import("@deltecho/cognitive").NarrativeResult;
 import styles from "./DeepTreeEchoHub.module.scss";
 import classNames from "classnames";
 
@@ -740,6 +743,70 @@ const DeepTreeEchoHub: React.FC = () => {
     avatarController.playMotion(motion as any);
   }, [simulationState.currentState, avatarController, avatarLoaded]);
 
+  // DreamGen Narrative state
+  const narrativeAdapterRef = React.useRef<DreamGenNarrativeAdapterType | null>(null);
+  const [latestNarrative, setLatestNarrative] = useState<NarrativeResultType | null>(null);
+  const [narrativeReady, setNarrativeReady] = useState(false);
+
+  // Initialize DreamGen narrative adapter
+  useEffect(() => {
+    let mounted = true;
+    const init = async () => {
+      try {
+        const { createDreamGenNarrativeAdapter } = await import("@deltecho/cognitive");
+        if (!mounted) return;
+        const adapter = createDreamGenNarrativeAdapter({
+          style: "introspective",
+          maxTokens: 150,
+          temperature: 0.65,
+        });
+        narrativeAdapterRef.current = adapter;
+        adapter.subscribe((event) => {
+          if (event.type === "narrative_generated") {
+            const result = event.data as NarrativeResultType;
+            setLatestNarrative(result);
+            simulation.generateThought(result.text, "narrative");
+            setSimulationState(simulation.getState());
+          }
+        });
+        console.log("[DeepTreeEchoHub] DreamGen narrative adapter initialized");
+        setNarrativeReady(true);
+      } catch (e) {
+        console.warn("[DeepTreeEchoHub] DreamGen narrative init failed:", e);
+      }
+    };
+    init();
+    return () => { mounted = false; narrativeAdapterRef.current = null; };
+  }, [simulation]);
+
+  // Feed cognitive state to DreamGen narrative adapter periodically
+  useEffect(() => {
+    if (!narrativeReady || !autoRun) return;
+    const adapter = narrativeAdapterRef.current;
+    if (!adapter || !adapter.isReady()) return;
+    const narrativeInterval = setInterval(async () => {
+      const state = simulation.getState();
+      await adapter.generateNarrative(
+        {
+          stateName: state.currentState,
+          recursionLevel: state.recursionLevel,
+          stepsTaken: state.stepsTaken,
+          knowledgeAtoms: state.insightsGained,
+          recentThoughts: state.thoughtStream.slice(0, 3).map((t: any) => t.content),
+        },
+        endocrineDebug
+          ? {
+              cognitiveMode: endocrineDebug.mode,
+              activeExpressions: endocrineDebug.expressions,
+              hormones: endocrineDebug.hormones,
+              tick: endocrineDebug.tick,
+            }
+          : undefined,
+      );
+    }, 15000);
+    return () => clearInterval(narrativeInterval);
+  }, [narrativeReady, autoRun, simulation, endocrineDebug]);
+
   return (
     <div className={styles.hub_container}>
       {/* Sidebar */}
@@ -907,11 +974,29 @@ const DeepTreeEchoHub: React.FC = () => {
                 {simulationState.thoughtStream.map((t: any) => (
                   <div
                     key={t.id}
-                    className={classNames(styles.thought, styles[t.type])}
+                    className={classNames(
+                      styles.thought,
+                      styles[t.type],
+                      t.type === "narrative" && styles.narrative_thought,
+                    )}
+                    style={
+                      t.type === "narrative"
+                        ? {
+                            borderLeft: "3px solid #a78bfa",
+                            background: "rgba(167, 139, 250, 0.08)",
+                            fontStyle: "italic",
+                            padding: "0.75rem",
+                          }
+                        : undefined
+                    }
                   >
                     <div className={styles.meta}>
                       <span>{new Date(t.timestamp).toLocaleTimeString()}</span>
-                      <span>{t.state}</span>
+                      <span>
+                        {t.type === "narrative"
+                          ? "DreamGen Narrative"
+                          : t.state}
+                      </span>
                     </div>
                     <div>{t.content}</div>
                   </div>

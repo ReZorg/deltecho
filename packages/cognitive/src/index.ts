@@ -39,6 +39,9 @@ export {
   createMemoryAdapter,
   LLMAdapter,
   createLLMAdapter,
+  DreamGenNarrativeAdapter,
+  createDreamGenNarrativeAdapter,
+  DEFAULT_DREAMGEN_CONFIG,
 } from "./integrations";
 export type {
   IPersonaCore,
@@ -50,6 +53,12 @@ export type {
   LLMAdapterConfig,
   LLMResponse,
   PromptContext,
+  DTECognitiveSnapshot,
+  EndocrineSnapshot,
+  DreamGenNarrativeConfig,
+  NarrativeResult,
+  NarrativeEvent,
+  NarrativeEventListener,
 } from "./integrations";
 
 // Types
