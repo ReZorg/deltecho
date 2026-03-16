@@ -6,9 +6,12 @@
  */
 
 import { Container, getContainer } from "@cloudflare/containers";
+import { handleCognitiveRequest, CognitiveEnv } from "./cognitive-kv";
 
-export interface Env {
+export interface Env extends CognitiveEnv {
   DELTECHO_CONTAINER: DurableObjectNamespace;
+  DTE_KV: KVNamespace;
+  DTE_R2: R2Bucket;
   WEB_PASSWORD: string;
   OPENAI_API_KEY?: string;
   OPENAI_BASE_URL?: string;
@@ -105,6 +108,157 @@ export default {
       );
     }
 
+    // Handle cognitive persistence routes at the Worker edge (KV + R2)
+    // These are intercepted BEFORE forwarding to the container
+    if (url.pathname.startsWith("/backend-api/cognitive/")) {
+      const cogResponse = await handleCognitiveRequest(request, env, url);
+      if (cogResponse) {
+        return cogResponse;
+      }
+    }
+
+    // Handle DreamGen narrative proxy at the Worker edge
+    if (url.pathname === "/backend-api/dreamgen/narrative" && request.method === "POST") {
+      const dgenKey = env.DGENKEY;
+      if (!dgenKey) {
+        return new Response(JSON.stringify({ error: "DGENKEY not configured" }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      const body = await request.json();
+      const dgenResponse = await fetch("https://dreamgen.com/api/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${dgenKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      return new Response(dgenResponse.body, {
+        status: dgenResponse.status,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
+    }
+
+    // Handle LLM proxy at the Worker edge
+    if (url.pathname === "/backend-api/llm/chat" && request.method === "POST") {
+      const apiKey = env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return new Response(JSON.stringify({ error: "OPENAI_API_KEY not configured" }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      const body = await request.json();
+      const baseUrl = env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+      const llmResponse = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      return new Response(llmResponse.body, {
+        status: llmResponse.status,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
+    }
+
+    // ─── Account Persistence via R2 ───────────────────────────────────
+    // The container's disk is ephemeral - backup/restore account data to R2
+    // These endpoints are called by the container's startup.sh and backup cron
+
+    if (url.pathname === "/backend-api/accounts/backup" && request.method === "POST") {
+      try {
+        const tarData = await request.arrayBuffer();
+        await env.DTE_R2.put("accounts/accounts-backup.tar.gz", tarData, {
+          httpMetadata: { contentType: "application/gzip" },
+          customMetadata: {
+            backed_up_at: new Date().toISOString(),
+            size_bytes: String(tarData.byteLength),
+          },
+        });
+        // Also keep a timestamped copy for safety
+        const ts = new Date().toISOString().replace(/[:.]/g, "-");
+        await env.DTE_R2.put(`accounts/accounts-backup-${ts}.tar.gz`, tarData, {
+          httpMetadata: { contentType: "application/gzip" },
+        });
+        /* ignore-console-log */
+        console.log(`[DeltEcho] Account backup stored: ${tarData.byteLength} bytes`);
+        return new Response(JSON.stringify({
+          stored: true,
+          size: tarData.byteLength,
+          timestamp: new Date().toISOString(),
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch (error) {
+        /* ignore-console-log */
+        console.error("[DeltEcho] Account backup failed:", error);
+        return new Response(JSON.stringify({ error: String(error) }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    if (url.pathname === "/backend-api/accounts/restore" && request.method === "GET") {
+      try {
+        const obj = await env.DTE_R2.get("accounts/accounts-backup.tar.gz");
+        if (!obj) {
+          return new Response(JSON.stringify({ exists: false }), {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        /* ignore-console-log */
+        console.log(`[DeltEcho] Account restore: serving ${obj.size} bytes`);
+        return new Response(obj.body, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/gzip",
+            "X-Backup-Date": obj.customMetadata?.backed_up_at || "unknown",
+            "Content-Length": String(obj.size),
+          },
+        });
+      } catch (error) {
+        /* ignore-console-log */
+        console.error("[DeltEcho] Account restore failed:", error);
+        return new Response(JSON.stringify({ error: String(error) }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    if (url.pathname === "/backend-api/accounts/status" && request.method === "GET") {
+      try {
+        const obj = await env.DTE_R2.head("accounts/accounts-backup.tar.gz");
+        return new Response(JSON.stringify({
+          exists: !!obj,
+          size: obj?.size || 0,
+          backed_up_at: obj?.customMetadata?.backed_up_at || null,
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch {
+        return new Response(JSON.stringify({ exists: false }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // Validate that WEB_PASSWORD is configured
     if (!env.WEB_PASSWORD) {
       return new Response(
@@ -141,6 +295,7 @@ export default {
             OPENAI_BASE_URL: env.OPENAI_BASE_URL || "",
             DGENKEY: env.DGENKEY || "",
             NEON_CONNECTION_URI: env.NEON_CONNECTION_URI || "",
+            DELTECHO_EXTERNAL_URL: url.origin,
             DELTA_CHAT_RPC_SERVER: "/usr/local/bin/deltachat-rpc-server",
             DC_ACCOUNTS_PATH: "/data/accounts",
             DATA_DIR: "/data",

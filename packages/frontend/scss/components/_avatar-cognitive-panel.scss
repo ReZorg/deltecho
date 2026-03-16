@@ -1,0 +1,327 @@
+/**
+ * AvatarCognitivePanel styles - RHS panel with avatar + cognitive stream
+ */
+
+.avatar-cognitive-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 15, 35, 0.98) 0%,
+    rgba(20, 20, 50, 0.95) 40%,
+    rgba(25, 25, 60, 0.92) 100%
+  );
+  border-left: 1px solid rgba(99, 102, 241, 0.15);
+  overflow: hidden;
+
+  // Avatar section (top 55%)
+  &__avatar {
+    flex: 0 0 55%;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    // Override the panel-avatar styles since we're now the top-level panel
+    .deep-tree-echo-avatar-display.panel-avatar {
+      width: 100% !important;
+      min-width: unset !important;
+      max-width: unset !important;
+      height: 100% !important;
+      border-left: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+
+    // Subtle glow behind avatar
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(
+        circle,
+        rgba(99, 102, 241, 0.15) 0%,
+        transparent 70%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+  }
+
+  // Cognitive stream section (bottom 45%)
+  &__stream {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-top: 1px solid rgba(99, 102, 241, 0.15);
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  // Thoughts area
+  &__thoughts {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 8px;
+    min-height: 0;
+
+    // Override thought bubble styles for inline mode in panel
+    .dte-thought-bubble.dte-thought-inline {
+      background: transparent;
+      padding: 0;
+      border: none;
+      box-shadow: none;
+    }
+  }
+
+  // Endocrine section
+  &__endocrine {
+    flex-shrink: 0;
+    border-top: 1px solid rgba(99, 102, 241, 0.1);
+  }
+
+  &__endocrine-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 6px 12px;
+    border: none;
+    background: rgba(99, 102, 241, 0.05);
+    color: rgba(200, 200, 255, 0.5);
+    cursor: pointer;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(99, 102, 241, 0.1);
+      color: rgba(200, 200, 255, 0.7);
+    }
+  }
+}
+
+// Session stats bar
+.session-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.08);
+  flex-shrink: 0;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: rgba(200, 200, 255, 0.5);
+  }
+
+  &__icon {
+    font-size: 12px;
+  }
+
+  &__value {
+    font-weight: 600;
+    color: rgba(200, 200, 255, 0.7);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// Endocrine visualization
+.endocrine-viz {
+  padding: 6px 12px 10px;
+
+  &--empty {
+    text-align: center;
+    padding: 12px;
+  }
+
+  &__label {
+    font-size: 11px;
+    color: rgba(200, 200, 255, 0.3);
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  &__mode {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(200, 200, 255, 0.6);
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(99, 102, 241, 0.1);
+  }
+
+  &__dominant {
+    font-size: 10px;
+    font-weight: 500;
+  }
+
+  &__bars {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  &__bar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__bar-label {
+    width: 28px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-align: right;
+  }
+
+  &__bar-track {
+    flex: 1;
+    height: 4px;
+    background: rgba(200, 200, 255, 0.05);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  &__bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease, opacity 0.5s ease;
+  }
+
+  &__bar-value {
+    width: 22px;
+    font-size: 9px;
+    color: rgba(200, 200, 255, 0.4);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// Thought bubble styles for the cognitive panel
+.dte-thought-bubble {
+  &.dte-thought-inline {
+    .dte-thought-phase {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(99, 102, 241, 0.08);
+      font-size: 12px;
+    }
+
+    .dte-phase-icon {
+      font-size: 14px;
+    }
+
+    .dte-phase-name {
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .dte-mood-badge {
+      margin-left: auto;
+      font-size: 11px;
+      color: rgba(200, 200, 255, 0.5);
+    }
+
+    .dte-narrative-display {
+      padding: 8px;
+      margin: 4px 0;
+      background: rgba(99, 102, 241, 0.05);
+      border-radius: 8px;
+      border-left: 2px solid rgba(99, 102, 241, 0.3);
+      font-size: 12px;
+      font-style: italic;
+      color: rgba(200, 200, 255, 0.7);
+      line-height: 1.5;
+    }
+
+    .dte-narrative-quote {
+      color: rgba(99, 102, 241, 0.4);
+      font-size: 16px;
+    }
+
+    .dte-thought-stream {
+      max-height: 120px;
+      overflow-y: auto;
+      padding: 4px 0;
+
+      &::-webkit-scrollbar {
+        width: 3px;
+      }
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.2);
+        border-radius: 2px;
+      }
+    }
+
+    .dte-thought-entry {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      color: rgba(200, 200, 255, 0.5);
+      transition: opacity 0.5s ease;
+
+      &.dte-thought-fading {
+        opacity: 0.3;
+      }
+    }
+
+    .dte-thought-icon,
+    .dte-thought-narrative-icon {
+      font-size: 12px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .dte-thought-content {
+      flex: 1;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+
+    .dte-thought-narrative {
+      color: rgba(200, 200, 255, 0.65);
+      font-style: italic;
+    }
+  }
+}
+
+// Responsive: collapse avatar panel on small screens
+@media (max-width: 1024px) {
+  .avatar-cognitive-panel {
+    &__avatar {
+      flex: 0 0 40%;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .avatar-cognitive-panel {
+    display: none; // Hide on mobile, show floating avatar instead
+  }
+}

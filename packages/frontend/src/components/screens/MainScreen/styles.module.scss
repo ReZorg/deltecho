@@ -3,13 +3,19 @@
 // FYI there is also `_main_screen.scss`.
 
 :global(.main-screen.small-screen.chat-view-open) {
-  .chatListAndNavbar {
+  .workspaceNavSection {
+    display: none;
+  }
+  .avatarCognitiveSection {
     display: none;
   }
 }
 
 :global(.main-screen.small-screen:not(.chat-view-open)) {
   .chatAndNavbar {
+    display: none;
+  }
+  .avatarCognitiveSection {
     display: none;
   }
 }
@@ -24,41 +30,25 @@
   flex-shrink: 0;
 }
 
-.chatListAndNavbar {
+// LHS: Workspace Navigation (1/3)
+.workspaceNavSection {
   display: flex;
   flex-direction: column;
-
-  // See below, `.chatAndNavbar`'s flex-grow.
   width: 0;
-  flex-grow: 3;
-
-  min-width: 295px;
-
-  .chatListNavbar {
-    @include navbar;
-    display: flex;
-    align-items: center;
-    padding: 0px 10px;
-
-    .archivedChatsTitle {
-      flex: 1 1 auto;
-      overflow-x: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      font-size: 18px;
-    }
-  }
+  flex-grow: 1;
+  min-width: 260px;
+  max-width: 360px;
+  overflow: hidden;
+  border-right: 1px solid rgba(99, 102, 241, 0.1);
 }
 
+// Center: Chat messages (1/3)
 .chatAndNavbar {
   // Otherwise e.g. the contents of the gallery view
-  // (tabs, sepcifically) will refuse to shrink,
+  // (tabs, specifically) will refuse to shrink,
   // and this element (`.chatAndNavbar`) will overflow the parent.
-  // Also this ensures that `.chatListAndNavbar` and `.chatAndNavbar`
-  // take respectively 3 and 8 parts of the width of the parent
-  // on wide screens.
   width: 0;
-  flex-grow: 8;
+  flex-grow: 1.5;
 
   display: flex;
   flex-direction: column;
@@ -132,6 +122,17 @@
       overflow: hidden;
     }
   }
+}
+
+// RHS: Avatar + Cognitive Stream (1/3)
+.avatarCognitiveSection {
+  display: flex;
+  flex-direction: column;
+  width: 0;
+  flex-grow: 1;
+  min-width: 280px;
+  max-width: 420px;
+  overflow: hidden;
 }
 
 .visuallyHidden {

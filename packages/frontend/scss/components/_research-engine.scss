@@ -1,0 +1,648 @@
+// ─── Research Engine Styles ───────────────────────────────────────
+// Autoresearch-inspired autonomous research UI
+
+$research-primary: #7c3aed;
+$research-secondary: #06b6d4;
+$research-success: #10b981;
+$research-warning: #f59e0b;
+$research-danger: #ef4444;
+$research-bg: rgba(124, 58, 237, 0.05);
+$research-border: rgba(124, 58, 237, 0.15);
+
+// ─── Thread List ──────────────────────────────────────────────────
+
+.research-thread-list {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--outlineVariant);
+  }
+
+  &__title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--onSurfaceVariant);
+  }
+
+  &__new-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 1px solid $research-border;
+    background: $research-bg;
+    color: $research-primary;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+
+    &:hover {
+      background: rgba(124, 58, 237, 0.15);
+      border-color: $research-primary;
+    }
+  }
+
+  &__items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px;
+  }
+
+  &__empty {
+    text-align: center;
+    padding: 24px 16px;
+    color: var(--onSurfaceVariant);
+
+    &-icon {
+      font-size: 32px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    p {
+      margin: 4px 0;
+      font-size: 13px;
+    }
+
+    &-hint {
+      font-size: 11px;
+      opacity: 0.7;
+    }
+  }
+}
+
+// ─── Thread Item ──────────────────────────────────────────────────
+
+.research-thread-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  margin: 2px 0;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.2s;
+  position: relative;
+
+  &:hover {
+    background: $research-bg;
+    border-color: $research-border;
+  }
+
+  &--active {
+    background: rgba(124, 58, 237, 0.1);
+    border-color: $research-primary;
+
+    .research-thread-item__status-bar {
+      opacity: 1;
+    }
+  }
+
+  &__icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__topic {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--onSurface);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__meta {
+    font-size: 11px;
+    color: var(--onSurfaceVariant);
+    margin-top: 2px;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  &__dot {
+    opacity: 0.5;
+  }
+
+  &__score {
+    font-size: 10px;
+    color: $research-success;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  &__status-bar {
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 3px;
+    border-radius: 2px;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+
+    &--exploring {
+      background: $research-primary;
+    }
+    &--synthesizing {
+      background: $research-warning;
+    }
+    &--archived {
+      background: var(--onSurfaceVariant);
+    }
+    &--paused {
+      background: var(--outline);
+    }
+  }
+}
+
+// ─── Thread Detail ────────────────────────────────────────────────
+
+.research-thread-detail {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+
+  &__header {
+    padding: 12px;
+    border-bottom: 1px solid var(--outlineVariant);
+  }
+
+  &__title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__title {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--onSurface);
+  }
+
+  &__status {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 10px;
+
+    &--exploring {
+      background: rgba(124, 58, 237, 0.15);
+      color: $research-primary;
+    }
+    &--synthesizing {
+      background: rgba(245, 158, 11, 0.15);
+      color: $research-warning;
+    }
+    &--archived {
+      background: rgba(0, 0, 0, 0.08);
+      color: var(--onSurfaceVariant);
+    }
+    &--paused {
+      background: rgba(0, 0, 0, 0.05);
+      color: var(--outline);
+    }
+  }
+
+  &__hypothesis {
+    font-size: 12px;
+    color: var(--onSurfaceVariant);
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  // ─── Stats Bar ────────────────────────────────────────────────
+
+  &__stats {
+    display: flex;
+    gap: 2px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.02);
+    border-bottom: 1px solid var(--outlineVariant);
+  }
+
+  &__stat {
+    flex: 1;
+    text-align: center;
+    padding: 4px;
+    border-radius: 6px;
+
+    &-value {
+      display: block;
+      font-size: 16px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    &-label {
+      display: block;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.7;
+    }
+
+    &--keep .research-thread-detail__stat-value {
+      color: $research-success;
+    }
+    &--discard .research-thread-detail__stat-value {
+      color: $research-danger;
+    }
+    &--crash .research-thread-detail__stat-value {
+      color: $research-warning;
+    }
+    &--best .research-thread-detail__stat-value {
+      color: $research-primary;
+    }
+  }
+
+  // ─── Program Toggle ───────────────────────────────────────────
+
+  &__program-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--outlineVariant);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--onSurfaceVariant);
+    font-family: "SF Mono", "Fira Code", monospace;
+    width: 100%;
+    text-align: left;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.03);
+    }
+  }
+
+  &__program {
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid var(--outlineVariant);
+    max-height: 200px;
+    overflow-y: auto;
+
+    pre {
+      font-size: 11px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+      color: var(--onSurfaceVariant);
+    }
+  }
+
+  // ─── Experiments ──────────────────────────────────────────────
+
+  &__experiments {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    min-height: 100px;
+
+    &-header {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--onSurfaceVariant);
+      padding: 4px 8px;
+      margin-bottom: 4px;
+    }
+  }
+
+  &__no-experiments {
+    text-align: center;
+    padding: 16px;
+    font-size: 12px;
+    color: var(--onSurfaceVariant);
+    opacity: 0.7;
+  }
+
+  // ─── Findings ─────────────────────────────────────────────────
+
+  &__findings {
+    border-top: 1px solid var(--outlineVariant);
+    padding: 8px;
+
+    &-header {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--onSurfaceVariant);
+      padding: 4px 8px;
+      margin-bottom: 4px;
+    }
+  }
+
+  // ─── Actions ──────────────────────────────────────────────────
+
+  &__actions {
+    display: flex;
+    gap: 6px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--outlineVariant);
+    background: rgba(0, 0, 0, 0.02);
+  }
+}
+
+// ─── Experiment Item ──────────────────────────────────────────────
+
+.research-experiment {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  margin: 2px 0;
+  border-radius: 6px;
+  border-left: 3px solid transparent;
+
+  &--keep {
+    border-left-color: $research-success;
+    background: rgba(16, 185, 129, 0.05);
+  }
+  &--discard {
+    border-left-color: $research-danger;
+    background: rgba(239, 68, 68, 0.03);
+  }
+  &--crash {
+    border-left-color: $research-warning;
+    background: rgba(245, 158, 11, 0.05);
+  }
+  &--running {
+    border-left-color: $research-primary;
+    background: rgba(124, 58, 237, 0.05);
+    animation: research-pulse 2s infinite;
+  }
+
+  &__status-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__hypothesis {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--onSurface);
+  }
+
+  &__result {
+    font-size: 11px;
+    color: var(--onSurfaceVariant);
+    margin-top: 2px;
+  }
+
+  &__meta {
+    display: flex;
+    gap: 8px;
+    margin-top: 2px;
+    font-size: 10px;
+    color: var(--outline);
+  }
+}
+
+// ─── Finding Item ─────────────────────────────────────────────────
+
+.research-finding {
+  display: flex;
+  gap: 8px;
+  padding: 6px 8px;
+  margin: 2px 0;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.02);
+
+  &__source-badge {
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__text {
+    font-size: 12px;
+    color: var(--onSurface);
+    line-height: 1.4;
+  }
+
+  &__meta {
+    display: flex;
+    gap: 8px;
+    margin-top: 2px;
+    font-size: 10px;
+    color: var(--outline);
+  }
+
+  &__confidence {
+    color: $research-success;
+    font-weight: 500;
+  }
+}
+
+// ─── Action Buttons ───────────────────────────────────────────────
+
+.research-action {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+
+  &--primary {
+    background: $research-primary;
+    border-color: $research-primary;
+    color: white;
+
+    &:hover {
+      filter: brightness(1.1);
+    }
+  }
+
+  &--secondary {
+    background: transparent;
+    border-color: $research-border;
+    color: $research-primary;
+
+    &:hover {
+      background: $research-bg;
+    }
+  }
+
+  &--tertiary {
+    background: transparent;
+    border-color: var(--outlineVariant);
+    color: var(--onSurfaceVariant);
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+  }
+}
+
+// ─── New Thread Dialog ────────────────────────────────────────────
+
+.new-research-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+  }
+
+  &__content {
+    position: relative;
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 20px;
+    width: 90%;
+    max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+    h3 {
+      margin: 0 0 16px;
+      font-size: 16px;
+      color: var(--onSurface);
+    }
+  }
+
+  &__label {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--onSurfaceVariant);
+  }
+
+  &__input {
+    display: block;
+    width: 100%;
+    margin-top: 4px;
+    padding: 8px 10px;
+    border: 1px solid var(--outlineVariant);
+    border-radius: 6px;
+    background: var(--surfaceContainerLow, var(--surface));
+    color: var(--onSurface);
+    font-size: 13px;
+
+    &:focus {
+      outline: none;
+      border-color: $research-primary;
+      box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+    }
+  }
+
+  &__textarea {
+    display: block;
+    width: 100%;
+    margin-top: 4px;
+    padding: 8px 10px;
+    border: 1px solid var(--outlineVariant);
+    border-radius: 6px;
+    background: var(--surfaceContainerLow, var(--surface));
+    color: var(--onSurface);
+    font-size: 12px;
+    font-family: "SF Mono", "Fira Code", monospace;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $research-primary;
+      box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  &__cancel {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--outlineVariant);
+    background: transparent;
+    color: var(--onSurfaceVariant);
+    cursor: pointer;
+    font-size: 13px;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+  }
+
+  &__submit {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    background: $research-primary;
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+
+    &:hover:not(:disabled) {
+      filter: brightness(1.1);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// ─── Animations ───────────────────────────────────────────────────
+
+@keyframes research-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}

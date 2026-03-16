@@ -40,6 +40,8 @@ import { Screens } from "../../../ScreenController";
 import type { T } from "@deltachat/jsonrpc-client";
 import CreateChat from "../../dialogs/CreateChat";
 import { getUIBridge } from "../../DeepTreeEchoBot/DeepTreeEchoUIBridge";
+import WorkspaceNav from "../../WorkspaceNav/WorkspaceNav";
+import { AvatarCognitivePanel } from "../../AvatarCognitivePanel/AvatarCognitivePanel";
 
 type Props = {
   accountId?: number;
@@ -205,55 +207,18 @@ export default function MainScreen({ accountId }: Props) {
         !messageSectionShouldBeHidden ? "chat-view-open" : ""
       }`}
     >
-      <section className={styles.chatListAndNavbar}>
-        <nav className={styles.chatListNavbar} data-tauri-drag-region>
-          {showArchivedChats && (
-            <>
-              <span data-no-drag-region>
-                <Button
-                  aria-label={tx("back")}
-                  onClick={() => setArchivedChatsSelected(false)}
-                  className="backButton"
-                >
-                  <Icon icon="arrow-left" className="backButtonIcon"></Icon>
-                </Button>
-              </span>
-              <div className={styles.archivedChatsTitle} data-no-drag-region>
-                {tx("chat_archived_chats_title")}
-              </div>
-            </>
-          )}
-          {!showArchivedChats && (
-            <SearchInput
-              id="chat-list-search"
-              inputRef={searchRef}
-              onChange={handleSearchChange}
-              onClear={queryChatId ? () => handleSearchClear() : undefined}
-              value={queryStr}
-            />
-          )}
-          {!showArchivedChats && (
-            <Button
-              aria-label="AI Neighborhood"
-              onClick={() => changeScreen(Screens.AINeighborhood)}
-              className="navbar-button"
-              style={{ marginLeft: "8px" }}
-              title="Visit the AI Companion Neighborhood"
-            >
-              <Icon icon="settings" size={20} />
-            </Button>
-          )}
-        </nav>
-        <ChatList
-          queryStr={queryStr}
-          showArchivedChats={showArchivedChats}
-          onChatClick={onChatClick}
+      {/* LHS: Workspace Navigation with Chatting/Working/Learning sections */}
+      <section className={styles.workspaceNavSection}>
+        <WorkspaceNav
           selectedChatId={chatId ?? null}
+          showArchivedChats={showArchivedChats}
+          queryStr={queryStr}
           queryChatId={queryChatId}
           onExitSearch={() => {
             setQueryStr("");
             setQueryChatId(null);
           }}
+          onChatClick={onChatClick}
         />
       </section>
       <section className={styles.chatAndNavbar}>
@@ -309,6 +274,12 @@ export default function MainScreen({ accountId }: Props) {
           onUpdateGalleryView={updatethreeDotMenuHidden}
         />
       </section>
+      {/* RHS: Avatar + Cognitive Stream Panel */}
+      {!smallScreenMode && (
+        <section className={styles.avatarCognitiveSection}>
+          <AvatarCognitivePanel />
+        </section>
+      )}
       {!chatListShouldBeHidden && <ConnectivityToast />}
     </div>
   );

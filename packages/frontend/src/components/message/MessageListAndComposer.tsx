@@ -14,7 +14,8 @@ import ConfirmSendingFiles from "../dialogs/ConfirmSendingFiles";
 import { ReactionsBarProvider } from "../ReactionsBar";
 import useDialog from "../../hooks/dialog/useDialog";
 import useMessage from "../../hooks/chat/useMessage";
-import { DeepTreeEchoAvatarDisplay } from "../DeepTreeEchoBot/DeepTreeEchoAvatarDisplay";
+// Avatar panel moved to AvatarCognitivePanel (RHS top-level panel)
+// import { DeepTreeEchoAvatarDisplay } from "../DeepTreeEchoBot/DeepTreeEchoAvatarDisplay";
 
 const log = getLogger("renderer/MessageListAndComposer");
 
@@ -315,12 +316,7 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
 
       // NoChatSelected also has this ID and class.
       id="message-list-and-composer"
-      className={`message-list-and-composer ${
-        settingsStore?.desktopSettings?.deepTreeEchoBotEnabled &&
-        settingsStore?.desktopSettings?.deepTreeEchoBotAvatarEnabled !== false
-          ? "with-avatar-panel"
-          : ""
-      }`}
+      className="message-list-and-composer"
       style={style}
       ref={conversationRef}
       onDrop={onDrop.bind({ props: { chat } })}
@@ -356,9 +352,7 @@ export default function MessageListAndComposer({ accountId, chat }: Props) {
           }
         />
       </div>
-      {settingsStore?.desktopSettings?.deepTreeEchoBotEnabled &&
-        settingsStore?.desktopSettings?.deepTreeEchoBotAvatarEnabled !==
-          false && <DeepTreeEchoAvatarDisplay position="panel" />}
+      {/* Avatar panel is now in AvatarCognitivePanel (RHS top-level panel) */}
     </div>
   );
 }

@@ -1,0 +1,666 @@
+/**
+ * WorkspaceNav styles - LHS panel with Chatting/Working/Learning sections
+ */
+
+.workspace-nav {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--chatListBg, #1a1a2e);
+  border-right: 1px solid rgba(99, 102, 241, 0.15);
+  overflow: hidden;
+
+  // Header with DTE branding + Manus badge
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    height: var(--navBarHeight, 50px);
+    background: var(--navBarBackground, #16213e);
+    border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--navBarText, #e0e0ff);
+  }
+
+  &__logo {
+    font-size: 20px;
+    filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.5));
+  }
+
+  &__name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // Section tabs
+  &__tabs {
+    display: flex;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+    background: rgba(0, 0, 0, 0.15);
+  }
+
+  &__tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 4px;
+    border: none;
+    background: transparent;
+    color: rgba(200, 200, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    &:hover {
+      color: rgba(200, 200, 255, 0.8);
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    &--active {
+      color: rgba(200, 200, 255, 1);
+      background: rgba(99, 102, 241, 0.1);
+      border-bottom: 2px solid rgba(99, 102, 241, 0.6);
+    }
+  }
+
+  &__tab-icon {
+    font-size: 16px;
+  }
+
+  &__tab-label {
+    font-size: 10px;
+  }
+
+  // Content area
+  &__content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // Section headers
+  &__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: rgba(200, 200, 255, 0.5);
+  }
+
+  &__add-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    background: rgba(99, 102, 241, 0.1);
+    color: rgba(200, 200, 255, 0.7);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: rgba(99, 102, 241, 0.5);
+      color: white;
+    }
+  }
+
+  // Empty state
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    text-align: center;
+    color: rgba(200, 200, 255, 0.4);
+
+    &-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+      opacity: 0.5;
+    }
+
+    p {
+      margin: 4px 0;
+      font-size: 13px;
+    }
+
+    &-hint {
+      font-size: 11px !important;
+      opacity: 0.6;
+    }
+  }
+
+  // Projects section
+  &__projects,
+  &__research {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__project-list,
+  &__research-list {
+    padding: 4px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__project-item,
+  &__research-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(99, 102, 241, 0.05);
+    color: var(--chatListItemText, #e0e0ff);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+
+    &:hover {
+      background: rgba(99, 102, 241, 0.12);
+    }
+
+    &--active {
+      border-left: 3px solid rgba(99, 102, 241, 0.6);
+    }
+  }
+
+  &__project-status,
+  &__research-status {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  &__project-info,
+  &__research-info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  &__project-name,
+  &__research-topic {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__project-desc,
+  &__research-meta {
+    font-size: 11px;
+    color: rgba(200, 200, 255, 0.4);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+
+  &__manus-badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  // Manus section in Working tab
+  &__manus-section {
+    margin-top: auto;
+    border-top: 1px solid rgba(99, 102, 241, 0.1);
+    padding: 4px 8px 8px;
+  }
+
+  &__manus-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(200, 200, 255, 0.2);
+    display: inline-block;
+
+    &.connected {
+      background: #43e97b;
+      box-shadow: 0 0 6px rgba(67, 233, 123, 0.5);
+    }
+  }
+
+  &__manus-chat-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    background: linear-gradient(
+      135deg,
+      rgba(99, 102, 241, 0.08),
+      rgba(118, 75, 162, 0.08)
+    );
+    color: var(--chatListItemText, #e0e0ff);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+
+    &:hover {
+      background: linear-gradient(
+        135deg,
+        rgba(99, 102, 241, 0.15),
+        rgba(118, 75, 162, 0.15)
+      );
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+  }
+
+  &__manus-icon {
+    font-size: 24px;
+  }
+
+  &__manus-chat-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__manus-chat-title {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  &__manus-chat-status {
+    font-size: 11px;
+    color: rgba(200, 200, 255, 0.4);
+    margin-top: 2px;
+  }
+
+  // Knowledge base stats
+  &__knowledge-status {
+    margin-top: auto;
+    border-top: 1px solid rgba(99, 102, 241, 0.1);
+    padding: 4px 0 8px;
+  }
+
+  &__knowledge-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 12px;
+  }
+
+  &__stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: rgba(200, 200, 255, 0.5);
+    padding: 4px 0;
+
+    &-icon {
+      font-size: 14px;
+    }
+
+    &-label {
+      flex: 1;
+    }
+
+    &-value {
+      font-weight: 600;
+      color: rgba(200, 200, 255, 0.7);
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+// Manus badge in header
+.manus-integration {
+  position: relative;
+}
+
+.manus-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  background: rgba(99, 102, 241, 0.08);
+  color: rgba(200, 200, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+
+  &--connected {
+    border-color: rgba(67, 233, 123, 0.3);
+    background: rgba(67, 233, 123, 0.08);
+  }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+  }
+
+  &__count {
+    font-size: 10px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 8px;
+    padding: 1px 5px;
+    min-width: 16px;
+    text-align: center;
+  }
+
+  &__messages {
+    font-size: 10px;
+    font-weight: 700;
+    background: #f5576c;
+    color: white;
+    border-radius: 8px;
+    padding: 1px 5px;
+    min-width: 16px;
+    text-align: center;
+  }
+
+  &__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(200, 200, 255, 0.2);
+
+    &--on {
+      background: #43e97b;
+      box-shadow: 0 0 4px rgba(67, 233, 123, 0.5);
+      animation: manus-pulse 2s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes manus-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// Manus panel dropdown
+.manus-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 320px;
+  max-height: 480px;
+  background: var(--chatListBg, #1a1a2e);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: rgba(200, 200, 255, 0.9);
+  }
+
+  &__icon {
+    font-size: 18px;
+  }
+
+  &__close {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: rgba(200, 200, 255, 0.1);
+    color: rgba(200, 200, 255, 0.6);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+
+    &:hover {
+      background: rgba(200, 200, 255, 0.2);
+      color: white;
+    }
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 12px;
+    color: rgba(200, 200, 255, 0.5);
+
+    &-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(200, 200, 255, 0.2);
+
+      &.connected {
+        background: #43e97b;
+        box-shadow: 0 0 6px rgba(67, 233, 123, 0.5);
+      }
+    }
+  }
+
+  &__projects {
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+
+    h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: rgba(200, 200, 255, 0.4);
+      margin: 0 0 8px;
+    }
+  }
+
+  &__project {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+
+    &-name {
+      flex: 1;
+      font-size: 13px;
+      color: rgba(200, 200, 255, 0.8);
+    }
+
+    &-status {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-weight: 600;
+
+      &--running {
+        background: rgba(67, 233, 123, 0.15);
+        color: #43e97b;
+      }
+      &--paused {
+        background: rgba(255, 215, 0, 0.15);
+        color: #ffd700;
+      }
+      &--completed {
+        background: rgba(99, 102, 241, 0.15);
+        color: #667eea;
+      }
+      &--failed {
+        background: rgba(245, 87, 108, 0.15);
+        color: #f5576c;
+      }
+    }
+  }
+
+  &__progress {
+    width: 60px;
+    height: 4px;
+    background: rgba(200, 200, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+
+    &-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+  }
+
+  // Chat section
+  &__chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 16px;
+    min-height: 0;
+
+    h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: rgba(200, 200, 255, 0.4);
+      margin: 0 0 8px;
+    }
+  }
+
+  &__chat-history {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 200px;
+    margin-bottom: 8px;
+  }
+
+  &__chat-empty {
+    font-size: 12px;
+    color: rgba(200, 200, 255, 0.3);
+    padding: 12px 0;
+    text-align: center;
+  }
+
+  &__chat-msg {
+    display: flex;
+    gap: 6px;
+    padding: 4px 0;
+    font-size: 12px;
+
+    &--dte {
+      color: rgba(200, 200, 255, 0.7);
+    }
+    &--manus {
+      color: rgba(99, 102, 241, 0.9);
+    }
+  }
+
+  &__chat-role {
+    flex-shrink: 0;
+  }
+
+  &__chat-content {
+    flex: 1;
+    word-break: break-word;
+  }
+
+  &__chat-input {
+    display: flex;
+    gap: 6px;
+
+    input {
+      flex: 1;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      background: rgba(0, 0, 0, 0.2);
+      color: rgba(200, 200, 255, 0.9);
+      font-size: 12px;
+      outline: none;
+
+      &:focus {
+        border-color: rgba(99, 102, 241, 0.5);
+      }
+
+      &::placeholder {
+        color: rgba(200, 200, 255, 0.3);
+      }
+    }
+
+    button {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+  }
+}
