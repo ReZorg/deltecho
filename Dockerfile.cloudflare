@@ -20,6 +20,9 @@ COPY packages/cognitive/package.json ./packages/cognitive/
 COPY packages/core/package.json ./packages/core/
 COPY packages/reasoning/package.json ./packages/reasoning/
 COPY packages/ui-components/package.json ./packages/ui-components/
+COPY packages/sys6-triality/package.json ./packages/sys6-triality/
+COPY packages/dove9/package.json ./packages/dove9/
+COPY packages/orchestrator/package.json ./packages/orchestrator/
 
 # Copy bin directory for preinstall scripts
 COPY bin/ ./bin/
@@ -37,8 +40,12 @@ ENV CLOUDFLARE_BUILD=true
 ARG VERSION_INFO_GIT_REF=unknown
 ENV VERSION_INFO_GIT_REF=${VERSION_INFO_GIT_REF}
 # Build workspace packages in dependency order
+# Cognitive deps (sys6-triality -> dove9) must be built before frontend esbuild
 # Avatar package must be built before frontend (provides Live2D integration)
-RUN pnpm --filter=@deltecho/avatar build && pnpm build:browser
+RUN pnpm --filter=@deltecho/sys6-triality build \
+    && pnpm --filter=@deltecho/dove9 build \
+    && pnpm --filter=@deltecho/avatar build \
+    && pnpm build:browser
 
 # Stage 2: Production image (minimal)
 FROM node:20-slim AS runner
