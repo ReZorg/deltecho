@@ -82,6 +82,8 @@ export interface DesktopSettingsType {
   deepTreeEchoBotProactiveTriggers?: string;
   /** Avatar display settings */
   deepTreeEchoBotAvatarEnabled?: boolean;
+  /** DreamGen API key for narrative generation */
+  deepTreeEchoBotDreamgenApiKey?: string;
 }
 
 export interface RC_Config {

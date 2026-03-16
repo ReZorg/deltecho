@@ -240,3 +240,81 @@ BackendApiRoute.post("/llm/chat", express.json(), async (req, res) => {
     });
   }
 });
+
+/**
+ * DreamGen Narrative Proxy endpoint for Deep Tree Echo.
+ * Proxies text completion requests to DreamGen's API using
+ * the server-side DGENKEY, so the frontend doesn't need to
+ * store API keys in browser settings.
+ */
+BackendApiRoute.get("/dreamgen/status", (_req, res) => {
+  const hasKey = !!process.env.DGENKEY;
+  res.json({
+    available: hasKey,
+    endpoint: "/backend-api/dreamgen/completions",
+    model: "lucid-v1-extra-large",
+  });
+});
+
+BackendApiRoute.post(
+  "/dreamgen/completions",
+  express.json(),
+  async (req, res) => {
+    try {
+      const apiKey = process.env.DGENKEY;
+      if (!apiKey) {
+        return res.status(503).json({
+          error: "DreamGen service not configured",
+          message:
+            "DGENKEY is not set. Set it via: wrangler secret put DGENKEY",
+        });
+      }
+
+      const { model, prompt, max_tokens, temperature, ...rest } = req.body;
+
+      if (!prompt) {
+        return res
+          .status(400)
+          .json({ error: "Invalid request: prompt is required" });
+      }
+
+      const response = await fetch(
+        "https://dreamgen.com/api/openai/v1/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: model || "lucid-v1-extra-large/text",
+            prompt,
+            stream: false,
+            max_tokens: max_tokens ?? 150,
+            temperature: temperature ?? 0.65,
+            ...rest,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        log.error("DreamGen API error:", response.status, errorData);
+        return res.status(response.status).json({
+          error: "DreamGen API error",
+          status: response.status,
+          details: errorData,
+        });
+      }
+
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      log.error("DreamGen proxy error:", error);
+      res.status(500).json({
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  },
+);

@@ -87,6 +87,7 @@ export async function initDeepTreeEchoBot(): Promise<void> {
       useParallelProcessing:
         desktopSettings.deepTreeEchoBotUseParallelProcessing !== false,
       cognitiveKeys,
+      dreamgenApiKey: desktopSettings.deepTreeEchoBotDreamgenApiKey || "",
     });
 
     log.info("Deep Tree Echo Bot initialized successfully");

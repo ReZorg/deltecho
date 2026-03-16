@@ -25,6 +25,22 @@ import {
   EpisodicMemoryConsolidator,
   createMemoryConsolidator,
 } from "./EpisodicMemoryConsolidator";
+import {
+  DreamGenNarrativeAdapter,
+  createDreamGenNarrativeAdapter,
+  type DTECognitiveSnapshot,
+  type EndocrineSnapshot,
+} from "@deltecho/cognitive";
+import {
+  pushNarrative,
+  pushPhaseChange,
+  pushMoodUpdate,
+  pushInternalThought,
+} from "./DTEThoughtBubble";
+import {
+  CognitivePersistenceClient,
+  getCognitivePersistenceClient,
+} from "./CognitivePersistenceClient";
 
 const log = getLogger("render/components/DeepTreeEchoBot/DeepTreeEchoBot");
 
@@ -48,6 +64,8 @@ export interface DeepTreeEchoBotOptions {
   agenticProvider?: "anthropic" | "openai" | "openrouter" | "local";
   /** The persona description */
   personaDesc?: string;
+  /** DreamGen API key for narrative generation */
+  dreamgenApiKey?: string;
 }
 
 /**
@@ -64,6 +82,8 @@ export class DeepTreeEchoBot {
   private chatOrchestrator: ChatOrchestrator;
   private thinkingSubstrate: AutonomousThinkingSubstrate;
   private memoryConsolidator: EpisodicMemoryConsolidator;
+  private narrativeAdapter: DreamGenNarrativeAdapter;
+  private persistence: CognitivePersistenceClient;
 
   constructor(options: DeepTreeEchoBotOptions) {
     // Set default options, then override with provided options
@@ -103,12 +123,51 @@ export class DeepTreeEchoBot {
     this.thinkingSubstrate.addEventListener((type, data) => {
       if (type === "endocrine_update") {
         log.debug("Thinking substrate endocrine update", data);
+        // Push endocrine state to thought bubble
+        const hormones = data as Record<string, number>;
+        pushMoodUpdate(hormones);
       } else if (type === "proactive_intent") {
         log.info("Thinking substrate proactive intent:", data);
+      } else if (type === "phase_change") {
+        const phaseData = data as { phase: number; phaseName: string };
+        pushPhaseChange(phaseData.phase, phaseData.phaseName);
+      } else if (type === "thought") {
+        const thought = data as { content: string; valence: number; arousal: number; salience: number };
+        pushInternalThought(thought.content, thought.valence, thought.arousal);
+        // Trigger DreamGen narrative on high-salience thoughts
+        if (thought.salience > 0.5 && this.narrativeAdapter.isReady()) {
+          this.triggerNarrativeGeneration().catch((err) =>
+            log.debug("Narrative generation skipped:", err)
+          );
+        }
+      } else if (type === "externalize") {
+        const ext = data as { content: string; valence: number; arousal: number };
+        pushInternalThought(ext.content, ext.valence, ext.arousal);
       }
     });
     this.thinkingSubstrate.start();
     log.info("Autonomous thinking substrate started");
+
+    // Initialize cognitive persistence
+    this.persistence = getCognitivePersistenceClient();
+    this.initializePersistence();
+
+    // Initialize DreamGen narrative adapter
+    this.narrativeAdapter = createDreamGenNarrativeAdapter({
+      apiKey: this.options.dreamgenApiKey || "",
+      model: "lucid-v1-extra-large",
+      maxTokens: 150,
+      temperature: 0.65,
+      style: "introspective",
+    });
+    this.narrativeAdapter.subscribe((event) => {
+      if (event.type === "narrative_generated") {
+        const result = event.data as { text: string; triggerState: string };
+        pushNarrative(result.text, result.triggerState);
+        log.info("DreamGen narrative generated:", result.text.slice(0, 80));
+      }
+    });
+    log.info("DreamGen narrative adapter initialized");
 
     // Initialize and start the episodic memory consolidator
     this.memoryConsolidator = createMemoryConsolidator({
@@ -194,10 +253,169 @@ export class DeepTreeEchoBot {
   }
 
   /**
+   * Initialize cognitive persistence: start session, recall previous state,
+   * wire event listeners for automatic storage of all cognitive activity.
+   */
+  private async initializePersistence(): Promise<void> {
+    try {
+      // Recall last session for continuity
+      const lastSession = await this.persistence.recallLastSession();
+      const recentThoughts = await this.persistence.recallThoughts(10);
+      const recentConversations = await this.persistence.recallConversations(5);
+
+      // Start a new session with context from the last one
+      const metadata: Record<string, unknown> = {
+        userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
+        startedAt: new Date().toISOString(),
+        previousSessionId: lastSession?.id || null,
+        recalledThoughts: recentThoughts.length,
+        recalledConversations: recentConversations.length,
+      };
+      await this.persistence.startSession(metadata);
+
+      // Feed recalled thoughts into the thinking substrate as seed memories
+      if (recentThoughts.length > 0) {
+        log.info(
+          `Restored ${recentThoughts.length} thoughts from previous sessions`,
+        );
+      }
+
+      // Wire thinking substrate events to persistence
+      this.thinkingSubstrate.addEventListener((type, data) => {
+        if (type === "thought") {
+          const t = data as {
+            content: string;
+            valence: number;
+            arousal: number;
+            salience: number;
+            phase?: number;
+            shouldExternalize?: boolean;
+          };
+          this.persistence.storeThought({
+            phase: t.phase || 0,
+            content: t.content,
+            valence: t.valence,
+            arousal: t.arousal,
+            salience: t.salience,
+            associations: [],
+            externalized: t.shouldExternalize || false,
+          });
+        }
+      });
+
+      // Wire narrative events to persistence
+      this.narrativeAdapter.subscribe((event) => {
+        if (event.type === "narrative_generated") {
+          const result = event.data as {
+            text: string;
+            triggerState: string;
+            generationTimeMs?: number;
+          };
+          this.persistence.storeNarrative({
+            trigger_state: result.triggerState,
+            content: result.text,
+            generation_time_ms: result.generationTimeMs || 0,
+            style: "introspective",
+          });
+        }
+      });
+
+      // Start periodic endocrine monitoring
+      this.persistence.startEndocrineMonitoring(() => {
+        try {
+          const state = this.thinkingSubstrate.getEndocrineState();
+          if (!state) return null;
+
+          let cognitiveMode = "CONTEMPLATIVE";
+          if (state.dopamine > 0.7) cognitiveMode = "REWARD";
+          else if (state.cortisol > 0.5) cognitiveMode = "STRESS";
+          else if (state.serotonin > 0.6 && state.dopamine > 0.5)
+            cognitiveMode = "FLOW";
+          else if (state.oxytocin > 0.6) cognitiveMode = "SOCIAL";
+
+          return {
+            cognitive_mode: cognitiveMode,
+            cortisol: state.cortisol || 0.3,
+            dopamine: state.dopamine || 0.5,
+            serotonin: state.serotonin || 0.5,
+            oxytocin: state.oxytocin || 0.3,
+            norepinephrine: state.norepinephrine || 0.3,
+            endorphin: state.endorphin || 0.3,
+            melatonin: state.melatonin || 0.3,
+            gaba: state.gaba || 0.5,
+          };
+        } catch {
+          return null;
+        }
+      }, 30000); // Every 30 seconds
+
+      log.info(
+        `Cognitive persistence initialized (session: ${this.persistence.getSessionId()})`,
+      );
+    } catch (error) {
+      log.warn("Cognitive persistence initialization failed (non-fatal):", error);
+    }
+  }
+
+  /**
+   * Get the persistence client (for external access)
+   */
+  public getPersistence(): CognitivePersistenceClient {
+    return this.persistence;
+  }
+
+  /**
    * Get the thinking substrate instance (for avatar integration)
    */
   public getThinkingSubstrate(): AutonomousThinkingSubstrate {
     return this.thinkingSubstrate;
+  }
+
+  /**
+   * Get the DreamGen narrative adapter instance
+   */
+  public getNarrativeAdapter(): DreamGenNarrativeAdapter {
+    return this.narrativeAdapter;
+  }
+
+  /**
+   * Trigger DreamGen narrative generation from current cognitive state
+   */
+  private async triggerNarrativeGeneration(): Promise<void> {
+    const substrate = this.thinkingSubstrate;
+    const endocrineState = substrate.getEndocrineState();
+    const recentThoughts = substrate.getRecentThoughts(3);
+    const currentPhase = substrate.getCurrentPhase();
+
+    // Map to cognitive snapshot
+    const phaseNames = [
+      "Sensing", "Filtering", "Resonating", "Associating",
+      "Integrating", "Evaluating", "Deciding", "Expressing", "Reflecting"
+    ];
+
+    const cognitive: DTECognitiveSnapshot = {
+      stateName: phaseNames[currentPhase] || "Unknown",
+      recursionLevel: Math.floor(recentThoughts.length / 3),
+      stepsTaken: recentThoughts.length,
+      knowledgeAtoms: recentThoughts.length * 10,
+      recentThoughts: recentThoughts.map((t) => t.content),
+    };
+
+    // Determine cognitive mode from endocrine state
+    let cognitiveMode = "CONTEMPLATIVE";
+    if (endocrineState.dopamine > 0.7) cognitiveMode = "REWARD";
+    else if (endocrineState.cortisol > 0.5) cognitiveMode = "STRESS";
+    else if (endocrineState.serotonin > 0.6 && endocrineState.dopamine > 0.5) cognitiveMode = "FLOW";
+    else if (endocrineState.oxytocin > 0.6) cognitiveMode = "SOCIAL";
+
+    const endocrine: EndocrineSnapshot = {
+      cognitiveMode,
+      activeExpressions: [],
+      hormones: endocrineState as unknown as Record<string, number>,
+      tick: 0,
+    };
+
+    await this.narrativeAdapter.generateNarrative(cognitive, endocrine);
   }
 
   /**
@@ -268,6 +486,13 @@ export class DeepTreeEchoBot {
 
       // Notify the thinking substrate of user interaction
       this.thinkingSubstrate.onUserInteraction(messageText);
+
+      // Persist incoming user message
+      this.persistence.storeConversation({
+        chat_id: String(chatId),
+        role: "user",
+        content: messageText,
+      });
 
       // Check if this is a command
       if (messageText.startsWith("/")) {
@@ -951,6 +1176,13 @@ I'm here to assist you with various tasks and engage in meaningful conversations
     try {
       // Use correct method from BackendRemote.rpc
       await BackendRemote.rpc.miscSendTextMessage(accountId, chatId, text);
+
+      // Persist DTE's response
+      this.persistence.storeConversation({
+        chat_id: String(chatId),
+        role: "assistant",
+        content: text,
+      });
     } catch (error) {
       log.error("Error sending message:", error);
     }

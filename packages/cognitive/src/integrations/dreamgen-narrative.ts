@@ -65,8 +65,10 @@ export interface DreamGenNarrativeConfig {
   repetitionPenalty: number;
   /** DRY sampler config (optional) */
   dry?: { multiplier: number; base: number; allowedLength: number };
-  /** API base URL */
+  /** API base URL (direct DreamGen API) */
   baseUrl: string;
+  /** Backend proxy URL (preferred, keeps API key server-side) */
+  proxyUrl: string;
   /** Narrative style preset */
   style: "introspective" | "poetic" | "stream-of-consciousness" | "journal";
   /** Maximum narrative history to retain */
@@ -110,6 +112,7 @@ export const DEFAULT_DREAMGEN_CONFIG: DreamGenNarrativeConfig = {
   repetitionPenalty: 1.02,
   dry: { multiplier: 0.8, base: 1.75, allowedLength: 2 },
   baseUrl: "https://dreamgen.com/api/openai/v1",
+  proxyUrl: "/backend-api/dreamgen/completions",
   style: "introspective",
   maxHistoryLength: 10,
 };
@@ -220,7 +223,11 @@ export class DreamGenNarrativeAdapter {
 
   /** Check if the adapter is configured and ready */
   isReady(): boolean {
-    return !!this.config.apiKey && this.config.apiKey.length > 0;
+    // Ready if we have either a direct API key or a backend proxy URL
+    return (
+      (!!this.config.apiKey && this.config.apiKey.length > 0) ||
+      (!!this.config.proxyUrl && this.config.proxyUrl.length > 0)
+    );
   }
 
   /** Subscribe to narrative events */
@@ -273,28 +280,37 @@ export class DreamGenNarrativeAdapter {
       const prompt = this.buildPrompt(cognitive, endocrine);
       const startTime = Date.now();
 
-      const response = await fetch(
-        `${this.config.baseUrl}/completions`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${this.config.apiKey}`,
-          },
-          body: JSON.stringify({
-            model: `${this.config.model}/text`,
-            stream: false,
-            max_tokens: this.config.maxTokens,
-            prompt,
-            temperature: this.config.temperature,
-            min_p: this.config.minP,
-            frequency_penalty: this.config.frequencyPenalty,
-            presence_penalty: this.config.presencePenalty,
-            repetition_penalty: this.config.repetitionPenalty,
-            ...(this.config.dry ? { dry: this.config.dry } : {}),
-          }),
-        },
-      );
+      // Prefer backend proxy (keeps API key server-side)
+      // Fall back to direct API if proxy not available
+      const useProxy = !!this.config.proxyUrl;
+      const url = useProxy
+        ? this.config.proxyUrl
+        : `${this.config.baseUrl}/completions`;
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      // Only add Authorization header for direct API calls
+      if (!useProxy && this.config.apiKey) {
+        headers.Authorization = `Bearer ${this.config.apiKey}`;
+      }
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: `${this.config.model}/text`,
+          stream: false,
+          max_tokens: this.config.maxTokens,
+          prompt,
+          temperature: this.config.temperature,
+          min_p: this.config.minP,
+          frequency_penalty: this.config.frequencyPenalty,
+          presence_penalty: this.config.presencePenalty,
+          repetition_penalty: this.config.repetitionPenalty,
+          ...(this.config.dry ? { dry: this.config.dry } : {}),
+        }),
+      });
 
       if (!response.ok) {
         const errText = await response.text();

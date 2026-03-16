@@ -1,0 +1,214 @@
+/**
+ * Styles for DTEThoughtBubble - Deep Tree Echo's inner narrative overlay
+ *
+ * Three position modes:
+ * - overlay: Positioned over the avatar panel
+ * - compact: Minimal strip at the bottom of the avatar
+ * - inline: Full-width within its parent
+ */
+
+.dte-thought-bubble {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 11px;
+  color: rgba(200, 200, 255, 0.85);
+  pointer-events: none;
+  user-select: none;
+  z-index: 5;
+
+  // Overlay mode: positioned at the bottom of the avatar panel
+  &.dte-thought-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 40%;
+    padding: 8px 12px;
+    background: linear-gradient(
+      0deg,
+      rgba(10, 10, 30, 0.92) 0%,
+      rgba(10, 10, 30, 0.7) 70%,
+      transparent 100%
+    );
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow: hidden;
+  }
+
+  // Compact mode: thin strip
+  &.dte-thought-compact {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 4px 8px;
+    background: rgba(10, 10, 30, 0.85);
+    border-top: 1px solid rgba(99, 102, 241, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    .dte-thought-stream,
+    .dte-narrative-display {
+      display: none;
+    }
+  }
+
+  // Inline mode
+  &.dte-thought-inline {
+    padding: 8px;
+    background: rgba(15, 15, 35, 0.9);
+    border-radius: 8px;
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+// Phase indicator bar
+.dte-thought-phase {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dte-phase-icon {
+  font-size: 12px;
+  animation: dte-phase-pulse 2s ease-in-out infinite;
+}
+
+.dte-phase-name {
+  flex-shrink: 0;
+}
+
+.dte-mood-badge {
+  margin-left: auto;
+  font-size: 10px;
+  opacity: 0.7;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+// Narrative display (DreamGen output)
+.dte-narrative-display {
+  padding: 6px 8px;
+  background: rgba(99, 102, 241, 0.08);
+  border-left: 2px solid rgba(99, 102, 241, 0.4);
+  border-radius: 0 4px 4px 0;
+  font-style: italic;
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(200, 200, 255, 0.9);
+  animation: dte-narrative-fade-in 0.8s ease-out;
+}
+
+.dte-narrative-quote {
+  font-size: 16px;
+  color: rgba(99, 102, 241, 0.5);
+  font-style: normal;
+  line-height: 1;
+  vertical-align: text-bottom;
+}
+
+.dte-narrative-text {
+  // Inherits italic from parent
+}
+
+// Thought stream
+.dte-thought-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 80px;
+  overflow-y: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.dte-thought-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 2px 0;
+  font-size: 10px;
+  line-height: 1.4;
+  opacity: 1;
+  transition: opacity 0.5s ease-out;
+
+  &.dte-thought-fading {
+    opacity: 0.3;
+  }
+
+  &.dte-thought-narrative {
+    color: rgba(167, 139, 250, 0.9);
+    font-style: italic;
+  }
+
+  &.dte-thought-thought {
+    color: rgba(200, 200, 255, 0.6);
+  }
+}
+
+.dte-thought-icon,
+.dte-thought-narrative-icon {
+  flex-shrink: 0;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.dte-thought-content {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+// Animations
+@keyframes dte-phase-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes dte-narrative-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .dte-thought-bubble.dte-thought-overlay {
+    max-height: 30%;
+    font-size: 10px;
+  }
+
+  .dte-narrative-display {
+    font-size: 10px;
+  }
+}

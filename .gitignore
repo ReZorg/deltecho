@@ -109,3 +109,4 @@ INSPECTION_NOTES.md
 PRODUCTION_STATE.md
 .wrangler/
 browser_observations.md
+.neon-connection.env

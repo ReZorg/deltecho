@@ -24,6 +24,7 @@ import {
   useDeepTreeEchoAvatarOptional,
   AvatarProcessingState as BotProcessingState,
 } from "./DeepTreeEchoAvatarContext";
+import { DTEThoughtBubble } from "./DTEThoughtBubble";
 // Styles loaded via scss/components/_deep-tree-echo-avatar.scss in the SCSS build pipeline
 
 // Lazy-import the avatar character system to avoid bundling issues
@@ -431,6 +432,13 @@ export const DeepTreeEchoAvatarDisplay: React.FC<
       )}
       {showEndocrineDebug && (
         <EndocrineDebugOverlay characterState={characterState} />
+      )}
+      {finalPosition === "panel" && (
+        <DTEThoughtBubble
+          visible={true}
+          position="overlay"
+          maxThoughts={4}
+        />
       )}
     </div>
   );

@@ -10,6 +10,7 @@ import { authMiddleWare, CORSMiddleWare } from "./middlewares";
 import resolvePath from "resolve-path";
 import { WebSocketServer } from "ws";
 import { BackendApiRoute } from "./backendApi";
+import { CognitivePersistenceRoute } from "./cognitive-persistence";
 import { MessageToBackend } from "./runtime-ws-protocol";
 
 // This import has side effects, it will quit the app if env vars or files are missing
@@ -202,6 +203,7 @@ app.get("/stickers/:account/:?pack/:filename", authMiddleWare, (req, res) => {
 app.use("/background", express.static(join(DATA_DIR, "background")));
 
 app.use("/backend-api", BackendApiRoute);
+app.use("/backend-api/cognitive", authMiddleWare, CognitivePersistenceRoute);
 app.use(helpRoute);
 
 app.get("/themes.json", async (_req, res) => {

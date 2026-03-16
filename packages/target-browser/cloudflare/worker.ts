@@ -12,6 +12,8 @@ export interface Env {
   WEB_PASSWORD: string;
   OPENAI_API_KEY?: string;
   OPENAI_BASE_URL?: string;
+  DGENKEY?: string;
+  NEON_CONNECTION_URI?: string;
 }
 
 /**
@@ -137,6 +139,8 @@ export default {
             WEB_PASSWORD: env.WEB_PASSWORD,
             OPENAI_API_KEY: env.OPENAI_API_KEY || "",
             OPENAI_BASE_URL: env.OPENAI_BASE_URL || "",
+            DGENKEY: env.DGENKEY || "",
+            NEON_CONNECTION_URI: env.NEON_CONNECTION_URI || "",
             DELTA_CHAT_RPC_SERVER: "/usr/local/bin/deltachat-rpc-server",
             DC_ACCOUNTS_PATH: "/data/accounts",
             DATA_DIR: "/data",
