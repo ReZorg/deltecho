@@ -22,7 +22,6 @@ COPY packages/reasoning/package.json ./packages/reasoning/
 COPY packages/ui-components/package.json ./packages/ui-components/
 COPY packages/sys6-triality/package.json ./packages/sys6-triality/
 COPY packages/dove9/package.json ./packages/dove9/
-COPY packages/orchestrator/package.json ./packages/orchestrator/
 
 # Copy bin directory for preinstall scripts
 COPY bin/ ./bin/
