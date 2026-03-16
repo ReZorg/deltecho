@@ -316,94 +316,110 @@ class CognitivePersistenceService {
     this.currentSessionId = null;
   }
 
-  /** Store a thought */
-  storeThought(thought: ThoughtRecord): void {
+  /** Store a thought (immediate write — frontend already batches) */
+  async storeThought(thought: ThoughtRecord): Promise<void> {
     const sessionId = thought.session_id || this.currentSessionId;
 
     if (this.neon && sessionId && !sessionId.startsWith("local-")) {
-      this.neon.addToBatch(
-        `INSERT INTO dte_thoughts (session_id, phase, content, valence, arousal, salience, associations, externalized)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [
-          sessionId,
-          thought.phase,
-          thought.content,
-          thought.valence,
-          thought.arousal,
-          thought.salience,
-          JSON.stringify(thought.associations || []),
-          thought.externalized || false,
-        ],
-      );
+      try {
+        await this.neon.query(
+          `INSERT INTO dte_thoughts (session_id, phase, content, valence, arousal, salience, associations, externalized)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            sessionId,
+            thought.phase,
+            thought.content,
+            thought.valence,
+            thought.arousal,
+            thought.salience,
+            JSON.stringify(thought.associations || []),
+            thought.externalized || false,
+          ],
+        );
+      } catch (error) {
+        log.error("Failed to store thought:", error);
+      }
     }
 
     this.r2.appendLine("thought", { ...thought, session_id: sessionId });
   }
 
-  /** Store a DreamGen narrative */
-  storeNarrative(narrative: NarrativeRecord): void {
+  /** Store a DreamGen narrative (immediate write) */
+  async storeNarrative(narrative: NarrativeRecord): Promise<void> {
     const sessionId = narrative.session_id || this.currentSessionId;
 
     if (this.neon && sessionId && !sessionId.startsWith("local-")) {
-      this.neon.addToBatch(
-        `INSERT INTO dte_narratives (session_id, trigger_state, content, generation_time_ms, style)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [
-          sessionId,
-          narrative.trigger_state,
-          narrative.content,
-          narrative.generation_time_ms,
-          narrative.style,
-        ],
-      );
+      try {
+        await this.neon.query(
+          `INSERT INTO dte_narratives (session_id, trigger_state, content, generation_time_ms, style)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [
+            sessionId,
+            narrative.trigger_state,
+            narrative.content,
+            narrative.generation_time_ms,
+            narrative.style,
+          ],
+        );
+      } catch (error) {
+        log.error("Failed to store narrative:", error);
+      }
     }
 
     this.r2.appendLine("narrative", { ...narrative, session_id: sessionId });
   }
 
-  /** Store an endocrine snapshot */
-  storeEndocrineSnapshot(snapshot: EndocrineRecord): void {
+  /** Store an endocrine snapshot (immediate write) */
+  async storeEndocrineSnapshot(snapshot: EndocrineRecord): Promise<void> {
     const sessionId = snapshot.session_id || this.currentSessionId;
 
     if (this.neon && sessionId && !sessionId.startsWith("local-")) {
-      this.neon.addToBatch(
-        `INSERT INTO dte_endocrine_snapshots (session_id, cognitive_mode, cortisol, dopamine, serotonin, oxytocin, norepinephrine, endorphin, melatonin, gaba)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [
-          sessionId,
-          snapshot.cognitive_mode,
-          snapshot.cortisol,
-          snapshot.dopamine,
-          snapshot.serotonin,
-          snapshot.oxytocin,
-          snapshot.norepinephrine,
-          snapshot.endorphin,
-          snapshot.melatonin,
-          snapshot.gaba,
-        ],
-      );
+      try {
+        await this.neon.query(
+          `INSERT INTO dte_endocrine_snapshots (session_id, cognitive_mode, cortisol, dopamine, serotonin, oxytocin, norepinephrine, endorphin, melatonin, gaba)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [
+            sessionId,
+            snapshot.cognitive_mode,
+            snapshot.cortisol,
+            snapshot.dopamine,
+            snapshot.serotonin,
+            snapshot.oxytocin,
+            snapshot.norepinephrine,
+            snapshot.endorphin,
+            snapshot.melatonin,
+            snapshot.gaba,
+          ],
+        );
+      } catch (error) {
+        log.error("Failed to store endocrine snapshot:", error);
+      }
     }
 
     this.r2.appendLine("endocrine", { ...snapshot, session_id: sessionId });
   }
 
-  /** Store a conversation message */
-  storeConversation(conversation: ConversationRecord): void {
+  /** Store a conversation message (immediate write — conversations are critical) */
+  async storeConversation(conversation: ConversationRecord): Promise<void> {
     const sessionId = conversation.session_id || this.currentSessionId;
 
     if (this.neon && sessionId && !sessionId.startsWith("local-")) {
-      this.neon.addToBatch(
-        `INSERT INTO dte_conversations (session_id, chat_id, role, content, context_thoughts, response_time_ms)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          sessionId,
-          conversation.chat_id,
-          conversation.role,
-          conversation.content,
-          JSON.stringify(conversation.context_thoughts || []),
-          conversation.response_time_ms || 0,
-        ],
-      );
+      try {
+        await this.neon.query(
+          `INSERT INTO dte_conversations (session_id, chat_id, role, content, context_thoughts, response_time_ms)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            sessionId,
+            conversation.chat_id,
+            conversation.role,
+            conversation.content,
+            JSON.stringify(conversation.context_thoughts || []),
+            conversation.response_time_ms || 0,
+          ],
+        );
+      } catch (error) {
+        log.error("Failed to store conversation:", error);
+      }
     }
 
     this.r2.appendLine("conversation", { ...conversation, session_id: sessionId });
@@ -536,7 +552,7 @@ CognitivePersistenceRoute.post("/session/end", express.json(), async (req, res) 
 CognitivePersistenceRoute.post("/thought", express.json(), async (req, res) => {
   try {
     const persistence = getCognitivePersistence();
-    persistence.storeThought(req.body);
+    await persistence.storeThought(req.body);
     res.status(201).json({ status: "stored" });
   } catch (error) {
     res.status(500).json({ error: "Failed to store thought" });
@@ -546,7 +562,7 @@ CognitivePersistenceRoute.post("/thought", express.json(), async (req, res) => {
 CognitivePersistenceRoute.post("/narrative", express.json(), async (req, res) => {
   try {
     const persistence = getCognitivePersistence();
-    persistence.storeNarrative(req.body);
+    await persistence.storeNarrative(req.body);
     res.status(201).json({ status: "stored" });
   } catch (error) {
     res.status(500).json({ error: "Failed to store narrative" });
@@ -556,7 +572,7 @@ CognitivePersistenceRoute.post("/narrative", express.json(), async (req, res) =>
 CognitivePersistenceRoute.post("/endocrine", express.json(), async (req, res) => {
   try {
     const persistence = getCognitivePersistence();
-    persistence.storeEndocrineSnapshot(req.body);
+    await persistence.storeEndocrineSnapshot(req.body);
     res.status(201).json({ status: "stored" });
   } catch (error) {
     res.status(500).json({ error: "Failed to store endocrine snapshot" });
@@ -566,7 +582,7 @@ CognitivePersistenceRoute.post("/endocrine", express.json(), async (req, res) =>
 CognitivePersistenceRoute.post("/conversation", express.json(), async (req, res) => {
   try {
     const persistence = getCognitivePersistence();
-    persistence.storeConversation(req.body);
+    await persistence.storeConversation(req.body);
     res.status(201).json({ status: "stored" });
   } catch (error) {
     res.status(500).json({ error: "Failed to store conversation" });
