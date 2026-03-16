@@ -41,6 +41,11 @@ let botInstance: DeepTreeEchoBot | null = null;
 // Track initialization state
 let isInitialized = false;
 
+// Track messages sent by DTE to prevent infinite loops in self-chats
+// Maps chatId -> timestamp of last DTE response
+const dteResponseCooldowns: Map<number, number> = new Map();
+const DTE_RESPONSE_COOLDOWN_MS = 3000; // 3 second cooldown between DTE responses per chat
+
 /**
  * Initialize the Deep Tree Echo Bot and all subsystems
  */
@@ -304,10 +309,35 @@ async function handleNewMessage(
     // Get message details
     const message = await BackendRemote.rpc.getMessage(accountId, msgId);
 
-    // Skip messages from self (ID 1 is the logged-in user)
-    if (message.fromId === 1) return;
+    // Check if this is a self-chat (Saved Messages)
+    // In self-chats, fromId === 1 (the logged-in user), and we WANT DTE to respond.
+    // In group/1:1 chats, skip messages from self to avoid echo loops.
+    const isSelfChat = await BackendRemote.rpc
+      .getBasicChatInfo(accountId, chatId)
+      .then((info: any) => info?.chatType === 'Self')
+      .catch(() => false);
 
-    log.info(`Received message in chat ${chatId}, message ID: ${msgId}`);
+    if (message.fromId === 1 && !isSelfChat) {
+      // Skip own messages in non-self chats to prevent echo loops
+      return;
+    }
+
+    // In self-chats, use cooldown to distinguish user messages from DTE's own responses
+    // If DTE just sent a response in this chat within the cooldown window, this is likely
+    // the IncomingMsg event for DTE's own response — skip it.
+    if (isSelfChat) {
+      const lastResponse = dteResponseCooldowns.get(chatId);
+      if (lastResponse && Date.now() - lastResponse < DTE_RESPONSE_COOLDOWN_MS) {
+        log.info(
+          `Skipping self-chat message in chat ${chatId} — within DTE response cooldown`,
+        );
+        return;
+      }
+    }
+
+    log.info(
+      `Received message in chat ${chatId}, message ID: ${msgId}${isSelfChat ? ' (self-chat)' : ''}`,
+    );
 
     // Check if Deep Tree Echo was mentioned (for proactive response)
     if (chatManager.checkForMention(message.text || "")) {
@@ -321,6 +351,9 @@ async function handleNewMessage(
 
     // Handle the message with the bot
     await botInstance.processMessage(accountId, chatId, msgId, message);
+
+    // Record that DTE just responded in this chat (for self-chat loop prevention)
+    dteResponseCooldowns.set(chatId, Date.now());
   } catch (error) {
     log.error("Error handling new message:", error);
   }

@@ -309,12 +309,19 @@ export class LLMService {
     try {
       const cognitiveFunction = this.getBestAvailableFunction(functionType);
 
-      if (!cognitiveFunction.config.apiKey) {
-        log.warn(`No API key provided for ${cognitiveFunction.name}`);
-        return `I'm sorry, but my ${cognitiveFunction.name.toLowerCase()} isn't fully configured. Please set up the API key in settings.`;
-      }
+      // Determine whether to use client-side API key or backend proxy
+      const useBackendProxy = !cognitiveFunction.config.apiKey;
+      const apiEndpoint = useBackendProxy
+        ? "/backend-api/llm/chat"
+        : cognitiveFunction.config.apiEndpoint;
 
-      log.info(`Generating response with ${cognitiveFunction.name}`);
+      if (useBackendProxy) {
+        log.info(
+          `No client-side API key for ${cognitiveFunction.name}, using backend proxy`,
+        );
+      } else {
+        log.info(`Generating response with ${cognitiveFunction.name}`);
+      }
 
       // Build the system prompt based on function type
       const systemPrompt = this.getSystemPromptForFunction(functionType);
@@ -350,12 +357,6 @@ export class LLMService {
 
       if (Array.isArray(input) && input.length > 0 && input[0].role) {
         // Input is already a full messages array override
-        // We should probably replace `messages` with `input` or merge?
-        // DeepTreeEchoBot constructed the FULL chain including system prompt.
-        // So if we detect full message chain, use it directly.
-
-        // But wait, `DeepTreeEchoBot` passed `messages as any` to `generateResponse`.
-        // If we want to support that, we should check if input is full message history.
         messages.length = 0; // Clear existing
         (input as any[]).forEach((m) => messages.push(m));
       } else {
@@ -363,16 +364,22 @@ export class LLMService {
         messages.push({ role: "user", content: input as any });
       }
 
-      // Try to make the actual API call
+      // Try to make the actual API call (via backend proxy or direct)
       try {
-        const response = await fetch(cognitiveFunction.config.apiEndpoint, {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        // Only add Authorization header when using direct API (not backend proxy)
+        if (!useBackendProxy && cognitiveFunction.config.apiKey) {
+          headers["Authorization"] =
+            `Bearer ${cognitiveFunction.config.apiKey}`;
+        }
+
+        const response = await fetch(apiEndpoint, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${cognitiveFunction.config.apiKey}`,
-          },
+          headers,
           body: JSON.stringify({
-            model: cognitiveFunction.config.model || "gpt-4",
+            model: cognitiveFunction.config.model || "gpt-4.1-mini",
             messages: messages,
             temperature: cognitiveFunction.config.temperature || 0.7,
             max_tokens: cognitiveFunction.config.maxTokens || 1000,

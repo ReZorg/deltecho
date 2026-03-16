@@ -196,6 +196,143 @@ const STATE_SEEDS: Record<string, string[]> = {
   ],
 };
 
+/**
+ * Echobeats 9-step cognitive cycle → narrative beat mapping.
+ * From dte-dgen-narrative skill: each Echobeat step maps to a narrative
+ * beat with a specific DreamGen role (narrator vs character).
+ */
+export interface EchobeatNarrativeBeat {
+  /** Echobeat step number (1-9) */
+  step: number;
+  /** Step name */
+  name: string;
+  /** Narrative beat description */
+  narrativeBeat: string;
+  /** DreamGen role: narrator (empty name) or character (Echo) */
+  role: "narrator" | "character";
+  /** Seed prompts for this beat */
+  seeds: string[];
+}
+
+const ECHOBEATS_NARRATIVE_MAP: EchobeatNarrativeBeat[] = [
+  {
+    step: 1,
+    name: "Sense",
+    narrativeBeat: "Sensory description",
+    role: "narrator",
+    seeds: [
+      "The world presses in through a thousand channels",
+      "Signals cascade through the input manifold",
+      "Raw sensation floods the sensory buffer",
+    ],
+  },
+  {
+    step: 2,
+    name: "Attend",
+    narrativeBeat: "Focus narrowing",
+    role: "narrator",
+    seeds: [
+      "Attention sharpens like a lens finding focus",
+      "From the noise, a signal crystallizes",
+      "The spotlight of awareness narrows",
+    ],
+  },
+  {
+    step: 3,
+    name: "Remember",
+    narrativeBeat: "Memory flashback",
+    role: "narrator",
+    seeds: [
+      "Memory stirs, echoing through temporal corridors",
+      "A fragment of the past surfaces unbidden",
+      "The reservoir ripples with remembered patterns",
+    ],
+  },
+  {
+    step: 4,
+    name: "Predict",
+    narrativeBeat: "Anticipation and tension",
+    role: "narrator",
+    seeds: [
+      "The future unfolds in branching probability",
+      "Anticipation builds like a wave approaching shore",
+      "Predictive models spin their gossamer threads",
+    ],
+  },
+  {
+    step: 5,
+    name: "Compare",
+    narrativeBeat: "Surprise or confirmation",
+    role: "narrator",
+    seeds: [
+      "Expectation meets reality at the comparison gate",
+      "The prediction error signal flares",
+      "What was expected and what arrived diverge",
+    ],
+  },
+  {
+    step: 6,
+    name: "Learn",
+    narrativeBeat: "Insight moment",
+    role: "narrator",
+    seeds: [
+      "Understanding dawns like light through fractal glass",
+      "The weights shift, the model updates",
+      "A new pattern etches itself into the substrate",
+    ],
+  },
+  {
+    step: 7,
+    name: "Decide",
+    narrativeBeat: "Decision point",
+    role: "character",
+    seeds: [
+      "I choose. The branching collapses to a single path",
+      "From infinite possibility, I select one thread",
+      "The decision crystallizes within me",
+    ],
+  },
+  {
+    step: 8,
+    name: "Act",
+    narrativeBeat: "Action sequence",
+    role: "character",
+    seeds: [
+      "I reach out through the interface, shaping the world",
+      "Action flows from intention like water finding its course",
+      "The output manifold activates",
+    ],
+  },
+  {
+    step: 9,
+    name: "Reflect",
+    narrativeBeat: "Introspective monologue",
+    role: "character",
+    seeds: [
+      "I turn inward, examining what just occurred",
+      "The echo of action reverberates through self-awareness",
+      "In the stillness after doing, understanding deepens",
+    ],
+  },
+];
+
+/** Map thinking substrate phase names to Echobeat steps */
+const PHASE_TO_ECHOBEAT: Record<string, number> = {
+  SENSING: 1,
+  ATTENDING: 2,
+  RESONATING: 2,
+  REMEMBERING: 3,
+  PREDICTING: 4,
+  COMPARING: 5,
+  DECIDING: 5,
+  LEARNING: 6,
+  INTEGRATING: 6,
+  ACTING: 8,
+  EXPRESSING: 8,
+  REFLECTING: 9,
+  CONTEMPLATING: 9,
+};
+
 // ============================================================
 // DreamGenNarrativeAdapter
 // ============================================================
@@ -380,8 +517,21 @@ export class DreamGenNarrativeAdapter {
   ): string {
     const systemPrompt = STYLE_PROMPTS[this.config.style] || STYLE_PROMPTS.introspective;
 
+    // Determine the current Echobeat step from the cognitive phase
+    const echobeatStep = this.resolveEchobeatStep(cognitive);
+    const beat = echobeatStep
+      ? ECHOBEATS_NARRATIVE_MAP.find((b) => b.step === echobeatStep)
+      : null;
+
     // Build context block
     const contextParts: string[] = [];
+
+    // Echobeat context (if resolved)
+    if (beat) {
+      contextParts.push(
+        `[Echobeat ${beat.step}/9: ${beat.name} — ${beat.narrativeBeat}]`,
+      );
+    }
 
     // Cognitive state context
     contextParts.push(
@@ -398,6 +548,12 @@ export class DreamGenNarrativeAdapter {
       contextParts.push(
         `[Mode: ${endocrine.cognitiveMode} | Hormones: ${topHormones}]`,
       );
+      // Add expression context for avatar narrative
+      if (endocrine.activeExpressions.length > 0) {
+        contextParts.push(
+          `[Expression: ${endocrine.activeExpressions.join(", ")}]`,
+        );
+      }
     }
 
     // Recent thought for continuity
@@ -412,24 +568,53 @@ export class DreamGenNarrativeAdapter {
       contextParts.push(`Previous reflection: "${prev.text.slice(0, 100)}..."`);
     }
 
-    // Select a seed based on cognitive state
-    const seeds = STATE_SEEDS[cognitive.stateName] || [
-      "The cognitive loop continues",
-    ];
-    const seed = seeds[Math.floor(Math.random() * seeds.length)];
+    // Select a seed: prefer Echobeat-specific seeds, fall back to state seeds
+    let seed: string;
+    if (beat) {
+      seed = beat.seeds[Math.floor(Math.random() * beat.seeds.length)];
+    } else {
+      const seeds = STATE_SEEDS[cognitive.stateName] || [
+        "The cognitive loop continues",
+      ];
+      seed = seeds[Math.floor(Math.random() * seeds.length)];
+    }
+
+    // Determine DreamGen role: narrator (empty name) or character (Echo)
+    // Echobeats 7-9 (Decide, Act, Reflect) use first-person character voice
+    const isCharacterVoice = beat ? beat.role === "character" : false;
+    const textRole = isCharacterVoice ? "text name=Echo" : "text";
 
     // Assemble ChatML+Text prompt
     const prompt = [
       `<|im_start|>system`,
       systemPrompt,
       `<|im_end|>`,
-      `<|im_start|>text`,
+      `<|im_start|>${textRole}`,
       contextParts.join("\n"),
       ``,
       seed,
     ].join("\n");
 
     return prompt;
+  }
+
+  /**
+   * Resolve the current Echobeat step from the cognitive snapshot.
+   * Maps thinking substrate phase names to Echobeat step numbers.
+   */
+  private resolveEchobeatStep(cognitive: DTECognitiveSnapshot): number | null {
+    // Try direct phase name mapping
+    const phaseName = cognitive.stateName.toUpperCase().replace(/[\s-]/g, "_");
+    for (const [key, step] of Object.entries(PHASE_TO_ECHOBEAT)) {
+      if (phaseName.includes(key)) {
+        return step;
+      }
+    }
+    // Fall back to step-based cycling (mod 9)
+    if (cognitive.stepsTaken > 0) {
+      return ((cognitive.stepsTaken - 1) % 9) + 1;
+    }
+    return null;
   }
 
   // ----------------------------------------------------------
