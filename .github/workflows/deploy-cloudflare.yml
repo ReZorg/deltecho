@@ -51,6 +51,13 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build Cognitive Dependencies
+        run: |
+          pnpm --filter @deltecho/sys6-triality build
+          pnpm --filter @deltecho/dove9 build
+          pnpm --filter @deltecho/cognitive build || true
+          pnpm --filter @deltecho/avatar build || true
+
       - name: Build Browser Target
         env:
           VERSION_INFO_GIT_REF: ${{ github.sha }}
