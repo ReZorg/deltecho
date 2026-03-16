@@ -59,8 +59,8 @@ interface ConversationRecord {
   chat_id: string;
   role: string;
   content: string;
-  context_thoughts: string[];
-  response_time_ms: number;
+  context_thoughts?: string[];
+  response_time_ms?: number;
 }
 
 interface SessionRecord {
@@ -331,8 +331,8 @@ class CognitivePersistenceService {
           thought.valence,
           thought.arousal,
           thought.salience,
-          thought.associations,
-          thought.externalized,
+          JSON.stringify(thought.associations || []),
+          thought.externalized || false,
         ],
       );
     }
@@ -400,8 +400,8 @@ class CognitivePersistenceService {
           conversation.chat_id,
           conversation.role,
           conversation.content,
-          conversation.context_thoughts,
-          conversation.response_time_ms,
+          JSON.stringify(conversation.context_thoughts || []),
+          conversation.response_time_ms || 0,
         ],
       );
     }
