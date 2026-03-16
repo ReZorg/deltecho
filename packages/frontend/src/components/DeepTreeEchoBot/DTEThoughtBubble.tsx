@@ -180,6 +180,30 @@ export function pushInternalThought(
 }
 
 // ============================================================
+// Endocrine State Event Bus (raw hormone values for EndocrineViz)
+// ============================================================
+
+type EndocrineListener = (hormones: Record<string, number>) => void;
+const endocrineListeners = new Set<EndocrineListener>();
+
+/** Push raw endocrine state for live visualization */
+export function pushEndocrineState(hormones: Record<string, number>): void {
+  endocrineListeners.forEach((listener) => {
+    try {
+      listener(hormones);
+    } catch {
+      // Swallow
+    }
+  });
+}
+
+/** Subscribe to live endocrine state updates */
+export function subscribeEndocrine(listener: EndocrineListener): () => void {
+  endocrineListeners.add(listener);
+  return () => endocrineListeners.delete(listener);
+}
+
+// ============================================================
 // Component
 // ============================================================
 

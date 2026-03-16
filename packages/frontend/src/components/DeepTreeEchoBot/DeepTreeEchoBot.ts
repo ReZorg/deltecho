@@ -36,6 +36,7 @@ import {
   pushPhaseChange,
   pushMoodUpdate,
   pushInternalThought,
+  pushEndocrineState,
 } from "./DTEThoughtBubble";
 import {
   CognitivePersistenceClient,
@@ -126,6 +127,7 @@ export class DeepTreeEchoBot {
         // Push endocrine state to thought bubble
         const hormones = data as Record<string, number>;
         pushMoodUpdate(hormones);
+        pushEndocrineState(hormones);
       } else if (type === "proactive_intent") {
         log.info("Thinking substrate proactive intent:", data);
       } else if (type === "phase_change") {

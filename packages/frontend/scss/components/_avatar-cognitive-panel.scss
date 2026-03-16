@@ -1,5 +1,10 @@
 /**
- * AvatarCognitivePanel styles - RHS panel with avatar + cognitive stream
+ * AvatarCognitivePanel styles - RHS panel with cognitive stream + avatar
+ *
+ * Layout (top → bottom):
+ *   1. Cognitive stream (thoughts, narrative, stats) — flex-shrink, auto height
+ *   2. Endocrine state (collapsible) — flex-shrink 0
+ *   3. Live2D avatar — flex: 1 fills remaining bottom space
  */
 
 .avatar-cognitive-panel {
@@ -15,52 +20,13 @@
   border-left: 1px solid rgba(99, 102, 241, 0.15);
   overflow: hidden;
 
-  // Avatar section (top 55%)
-  &__avatar {
-    flex: 0 0 55%;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    // Override the panel-avatar styles since we're now the top-level panel
-    .deep-tree-echo-avatar-display.panel-avatar {
-      width: 100% !important;
-      min-width: unset !important;
-      max-width: unset !important;
-      height: 100% !important;
-      border-left: none !important;
-      box-shadow: none !important;
-      background: transparent !important;
-    }
-
-    // Subtle glow behind avatar
-    &::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 200px;
-      height: 200px;
-      background: radial-gradient(
-        circle,
-        rgba(99, 102, 241, 0.15) 0%,
-        transparent 70%
-      );
-      pointer-events: none;
-      z-index: 0;
-    }
-  }
-
-  // Cognitive stream section (bottom 45%)
+  // Cognitive stream section (top — auto height, scrollable)
   &__stream {
-    flex: 1;
+    flex: 0 0 auto;
+    max-height: 45%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-top: 1px solid rgba(99, 102, 241, 0.15);
     background: rgba(0, 0, 0, 0.2);
   }
 
@@ -80,10 +46,11 @@
     }
   }
 
-  // Endocrine section
+  // Endocrine section (middle — collapsible)
   &__endocrine {
     flex-shrink: 0;
     border-top: 1px solid rgba(99, 102, 241, 0.1);
+    border-bottom: 1px solid rgba(99, 102, 241, 0.1);
   }
 
   &__endocrine-toggle {
@@ -106,6 +73,46 @@
       color: rgba(200, 200, 255, 0.7);
     }
   }
+
+  // Avatar section (bottom — fills remaining space)
+  &__avatar {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    min-height: 200px;
+
+    // Override the panel-avatar styles since we're now the bottom-level panel
+    .deep-tree-echo-avatar-display.panel-avatar {
+      width: 100% !important;
+      min-width: unset !important;
+      max-width: unset !important;
+      height: 100% !important;
+      border-left: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+
+    // Subtle glow behind avatar
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 30%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(
+        circle,
+        rgba(99, 102, 241, 0.12) 0%,
+        transparent 70%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+  }
 }
 
 // Session stats bar
@@ -114,7 +121,7 @@
   justify-content: space-around;
   padding: 6px 8px;
   background: rgba(0, 0, 0, 0.15);
-  border-bottom: 1px solid rgba(99, 102, 241, 0.08);
+  border-top: 1px solid rgba(99, 102, 241, 0.08);
   flex-shrink: 0;
 
   &__item {
@@ -261,7 +268,7 @@
     }
 
     .dte-thought-stream {
-      max-height: 120px;
+      max-height: 160px;
       overflow-y: auto;
       padding: 4px 0;
 
@@ -311,11 +318,14 @@
   }
 }
 
-// Responsive: collapse avatar panel on small screens
+// Responsive: on smaller screens give more room to avatar
 @media (max-width: 1024px) {
   .avatar-cognitive-panel {
+    &__stream {
+      max-height: 35%;
+    }
     &__avatar {
-      flex: 0 0 40%;
+      min-height: 180px;
     }
   }
 }

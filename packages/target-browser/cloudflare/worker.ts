@@ -117,7 +117,60 @@ export default {
       }
     }
 
-    // Handle DreamGen narrative proxy at the Worker edge
+    // Handle DreamGen status at the Worker edge
+    if (url.pathname === "/backend-api/dreamgen/status" && request.method === "GET") {
+      const hasKey = !!env.DGENKEY;
+      return new Response(JSON.stringify({
+        available: hasKey,
+        endpoint: "/backend-api/dreamgen/completions",
+        model: "lucid-v1-extra-large",
+      }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Handle DreamGen text completions proxy at the Worker edge
+    // This is used by the DreamGenNarrativeAdapter in the cognitive package
+    if (url.pathname === "/backend-api/dreamgen/completions" && request.method === "POST") {
+      const dgenKey = env.DGENKEY;
+      if (!dgenKey) {
+        return new Response(JSON.stringify({
+          error: "DreamGen service not configured",
+          message: "DGENKEY is not set. Set it via: wrangler secret put DGENKEY",
+        }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      try {
+        const body = await request.json() as Record<string, unknown>;
+        const dgenResponse = await fetch("https://dreamgen.com/api/openai/v1/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${dgenKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+        return new Response(dgenResponse.body, {
+          status: dgenResponse.status,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({
+          error: "DreamGen proxy error",
+          message: String(error),
+        }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // Handle DreamGen chat narrative proxy at the Worker edge
     if (url.pathname === "/backend-api/dreamgen/narrative" && request.method === "POST") {
       const dgenKey = env.DGENKEY;
       if (!dgenKey) {

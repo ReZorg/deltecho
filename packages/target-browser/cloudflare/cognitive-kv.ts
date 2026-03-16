@@ -298,10 +298,17 @@ async function storeThought(
   }
   await env.DTE_KV.put("thoughts:recent", JSON.stringify(recent));
 
-  // Increment count
+  // Increment global count
   const countRaw = await env.DTE_KV.get("thoughts:count");
   const count = (parseInt(countRaw || "0", 10) + 1).toString();
   await env.DTE_KV.put("thoughts:count", count);
+
+  // Also increment session-level counters
+  if (sessionRaw) {
+    const session: SessionRecord = JSON.parse(sessionRaw);
+    session.thought_count = (session.thought_count || 0) + 1;
+    await env.DTE_KV.put("session:current", JSON.stringify(session));
+  }
 
   // Append to R2 session log (JSONL format for streaming reads)
   const sessionId = thought.session_id || "unknown";
@@ -339,6 +346,14 @@ async function storeConversation(
     recent.splice(0, recent.length - 50);
   }
   await env.DTE_KV.put("conversations:recent", JSON.stringify(recent));
+
+  // Increment session-level conversation counter
+  const sessionRaw2 = await env.DTE_KV.get("session:current");
+  if (sessionRaw2) {
+    const session: SessionRecord = JSON.parse(sessionRaw2);
+    session.conversation_count = (session.conversation_count || 0) + 1;
+    await env.DTE_KV.put("session:current", JSON.stringify(session));
+  }
 
   // Append to R2
   const sessionId = conv.session_id || "unknown";
@@ -412,6 +427,14 @@ async function storeNarrative(
     recent.splice(0, recent.length - 20);
   }
   await env.DTE_KV.put("narratives:recent", JSON.stringify(recent));
+
+  // Increment session-level narrative counter
+  const sessionRaw2 = await env.DTE_KV.get("session:current");
+  if (sessionRaw2) {
+    const session: SessionRecord = JSON.parse(sessionRaw2);
+    session.narrative_count = (session.narrative_count || 0) + 1;
+    await env.DTE_KV.put("session:current", JSON.stringify(session));
+  }
 
   // Append to R2
   const sessionId = narrative.session_id || "unknown";

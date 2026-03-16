@@ -433,7 +433,9 @@ export const DeepTreeEchoAvatarDisplay: React.FC<
       {showEndocrineDebug && (
         <EndocrineDebugOverlay characterState={characterState} />
       )}
-      {finalPosition === "panel" && (
+      {/* DTEThoughtBubble is rendered by AvatarCognitivePanel when in panel mode */}
+      {/* Only show overlay thought bubble for non-panel positions */}
+      {finalPosition !== "panel" && finalPosition !== "inline" && (
         <DTEThoughtBubble
           visible={true}
           position="overlay"
