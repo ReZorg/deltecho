@@ -9,22 +9,48 @@ import { compile } from 'sass'
 
 /**
  * esbuild plugin to patch pixi-live2d-display-lipsyncpatch.
- * The library has a module-level check: `if (!window.Live2DCubismCore) throw ...`
- * When esbuild inlines this into the bundle, the check runs at bundle parse time
- * before the Cubism Core WASM has finished initializing asynchronously.
- * This plugin converts the fatal throw into a deferred warning.
+ *
+ * Fixes THREE critical issues when the library is bundled by esbuild:
+ *
+ * 1. Module-level check: `if (!window.Live2DCubismCore) throw ...`
+ *    When esbuild inlines this into the bundle, the check runs at bundle parse time
+ *    before the Cubism Core WASM has finished initializing asynchronously.
+ *    Fix: Convert the fatal throw into a deferred warning.
+ *
+ * 2. Cubism4 framework startup: `logFunction: console.log`
+ *    The startUpCubism4() function passes console.log as the framework's logFunction.
+ *    If console.log has been wrapped by error boundaries, browser extensions, or
+ *    debugging tools (as DeltaChat does), this causes infinite recursion and
+ *    "Maximum call stack size exceeded" crash. The patchCubismStartup() method
+ *    in PixiLive2DRenderer patches the Core SDK's logging, but the Framework's
+ *    startUp() receives console.log directly through a different path.
+ *    Fix: Replace with a safe noop logger that won't trigger recursion.
+ *
+ * 3. XHR-based loading: The library uses XMLHttpRequest for loading model files,
+ *    which may fail silently in some CSP configurations.
+ *    Fix: No code change needed, but the connect-src CSP must include 'self'.
  */
 const cubismPatchPlugin = {
   name: 'cubism-patch',
   setup(build) {
     build.onLoad({ filter: /pixi-live2d-display-lipsyncpatch.*\.js$/ }, async (args) => {
       let contents = await readFile(args.path, 'utf8')
-      // Replace the fatal throw with a console.warn - the actual check
-      // will happen at runtime when the model is loaded
+
+      // Patch 1: Replace the fatal throw with a console.warn
       contents = contents.replace(
         /if\s*\(!window\.Live2DCubismCore\)\s*\{\s*throw new Error\([^)]+\);\s*\}/g,
         `if (!window.Live2DCubismCore) { console.warn("[Live2D] Cubism 4 Core not yet loaded - will check again at model load time"); }`
       )
+
+      // Patch 2: Replace logFunction: console.log with a safe noop logger
+      // This prevents the "Maximum call stack size exceeded" crash caused by
+      // console.log recursion when the framework's logFunction is called
+      // through intercepted console methods in DeltaChat's error boundary.
+      contents = contents.replace(
+        /logFunction:\s*console\.log/g,
+        `logFunction: function() {}`
+      )
+
       return { contents, loader: 'js' }
     })
   },

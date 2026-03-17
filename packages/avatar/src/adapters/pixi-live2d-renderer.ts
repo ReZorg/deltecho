@@ -216,22 +216,33 @@ export class PixiLive2DRenderer implements ICubismRenderer {
    * This prevents the "Maximum call stack size exceeded" crash caused by
    * console.log recursion when the framework's logFunction is called
    * through intercepted console methods.
+   *
+   * There are TWO logging paths in the Cubism4 stack:
+   * 1. Core SDK: Live2DCubismCore.Logging.csmSetLogFunction(fn)
+   * 2. Framework: CubismFramework.startUp({ logFunction: console.log })
+   *
+   * The esbuild cubismPatchPlugin replaces path #2 at build time.
+   * This method patches path #1 at runtime as a defense-in-depth measure.
    */
   private patchCubismStartup(): void {
     try {
-      // The Cubism4 framework's startUpCubism4() uses:
-      //   { logFunction: console.log, loggingLevel: LogLevel_Verbose }
-      // If console.log has been wrapped (by error boundaries, extensions, etc.),
-      // this creates infinite recursion. We patch by ensuring the global
-      // Live2DCubismCore.Logging uses our safe logger.
       const cubismCore = (window as any).Live2DCubismCore;
       if (cubismCore?.Logging) {
+        // Intercept csmSetLogFunction to always use our safe logger
         const origSetLogFunction = cubismCore.Logging.csmSetLogFunction;
         if (origSetLogFunction) {
           cubismCore.Logging.csmSetLogFunction = function (_fn: any) {
             // Replace any console.log reference with our safe version
             origSetLogFunction.call(this, safeLog);
           };
+        }
+        // Also directly set the log function now in case startUp already ran
+        try {
+          if (origSetLogFunction) {
+            origSetLogFunction.call(cubismCore.Logging, safeLog);
+          }
+        } catch {
+          // Ignore if direct set fails
         }
       }
     } catch {
