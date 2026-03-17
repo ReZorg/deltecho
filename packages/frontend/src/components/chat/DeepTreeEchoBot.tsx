@@ -157,6 +157,8 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled: _enabled }) 
   const responseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Processing lock to prevent concurrent responses
   const isProcessing = useRef(false);
+  // Message queue for when the bot is busy processing
+  const messageQueue = useRef<Array<{ chatId: number; msgId: number }>>([]);
 
   /**
    * Send a message directly via RPC, bypassing useMessage hook
@@ -231,9 +233,10 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled: _enabled }) 
         processedMessages.current = new Set(entries.slice(-500));
       }
 
-      // Prevent concurrent processing
+      // Queue messages if already processing (instead of dropping them)
       if (isProcessing.current) {
-        log.info("Already processing a message, skipping");
+        log.info(`Queuing message ${msgId} in chat ${chatId} (bot is busy)`);
+        messageQueue.current.push({ chatId, msgId });
         return;
       }
       isProcessing.current = true;
@@ -343,6 +346,13 @@ const DeepTreeEchoBot: React.FC<DeepTreeEchoBotProps> = ({ enabled: _enabled }) 
         setDebugStatus(`${DTE_VERSION} Error: ${errMsg}`);
       } finally {
         isProcessing.current = false;
+        // Drain the queue: process the next queued message if any
+        if (messageQueue.current.length > 0) {
+          const next = messageQueue.current.shift()!;
+          log.info(`Draining queue: processing message ${next.msgId} in chat ${next.chatId}`);
+          // Use setTimeout to avoid deep recursion
+          setTimeout(() => handleMessage(next.chatId, next.msgId), 100);
+        }
       }
     },
     [accountId, sendBotMessage, memory, generateBotResponse, messageCount],

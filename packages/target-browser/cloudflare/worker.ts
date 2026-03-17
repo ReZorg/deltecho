@@ -197,32 +197,84 @@ export default {
       });
     }
 
+    // Handle LLM status at the Worker edge (so it works without container auth)
+    if (url.pathname === "/backend-api/llm/status" && request.method === "GET") {
+      const hasKey = !!env.OPENAI_API_KEY;
+      return new Response(JSON.stringify({
+        available: hasKey,
+        endpoint: "/backend-api/llm/chat",
+        model: "gpt-4.1-mini",
+        hasBaseUrl: !!env.OPENAI_BASE_URL,
+      }), {
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    }
+
     // Handle LLM proxy at the Worker edge
     if (url.pathname === "/backend-api/llm/chat" && request.method === "POST") {
       const apiKey = env.OPENAI_API_KEY;
       if (!apiKey) {
         return new Response(JSON.stringify({ error: "OPENAI_API_KEY not configured" }), {
           status: 503,
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
         });
       }
-      const body = await request.json();
-      const baseUrl = env.OPENAI_BASE_URL || "https://api.openai.com/v1";
-      const llmResponse = await fetch(`${baseUrl}/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-      return new Response(llmResponse.body, {
-        status: llmResponse.status,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      });
+      try {
+        const body = await request.json() as Record<string, unknown>;
+        // Normalize the base URL: if it already contains /chat/completions, use it directly
+        // Otherwise append /chat/completions to the base URL
+        let llmUrl: string;
+        const rawBaseUrl = env.OPENAI_BASE_URL || "";
+        if (rawBaseUrl && rawBaseUrl.includes("/chat/completions")) {
+          llmUrl = rawBaseUrl;
+        } else if (rawBaseUrl) {
+          // Strip trailing slash and append the path
+          llmUrl = rawBaseUrl.replace(/\/+$/, "") + "/chat/completions";
+        } else {
+          llmUrl = "https://api.openai.com/v1/chat/completions";
+        }
+        /* ignore-console-log */
+        console.log(`[DeltEcho] LLM proxy: ${llmUrl}`);
+        const llmResponse = await fetch(llmUrl, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+        if (!llmResponse.ok) {
+          const errorText = await llmResponse.text();
+          /* ignore-console-log */
+          console.error(`[DeltEcho] LLM API error: ${llmResponse.status} ${errorText.substring(0, 200)}`);
+          return new Response(JSON.stringify({
+            error: "LLM API error",
+            status: llmResponse.status,
+            details: errorText.substring(0, 500),
+            url: llmUrl,
+          }), {
+            status: llmResponse.status,
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+          });
+        }
+        return new Response(llmResponse.body, {
+          status: llmResponse.status,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        });
+      } catch (error) {
+        /* ignore-console-log */
+        console.error(`[DeltEcho] LLM proxy error:`, error);
+        return new Response(JSON.stringify({
+          error: "LLM proxy error",
+          message: String(error),
+        }), {
+          status: 500,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        });
+      }
     }
 
     // ─── Account Persistence via R2 ───────────────────────────────────
