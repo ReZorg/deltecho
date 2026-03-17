@@ -24,7 +24,8 @@ import {
   useDeepTreeEchoAvatarOptional,
   AvatarProcessingState as BotProcessingState,
 } from "./DeepTreeEchoAvatarContext";
-import { DTEThoughtBubble } from "./DTEThoughtBubble";
+import { DTEThoughtBubble, subscribeEndocrine, subscribePhaseChange } from "./DTEThoughtBubble";
+import { dteExpressionTick, type EndocrineState, type CognitiveMode } from "./DTEExpressionPipeline";
 // Styles loaded via scss/components/_deep-tree-echo-avatar.scss in the SCSS build pipeline
 
 // Lazy-import the avatar character system to avoid bundling issues
@@ -191,6 +192,75 @@ export const DeepTreeEchoAvatarDisplay: React.FC<
 
   const avatarController = useRef<Live2DAvatarController | null>(null);
   const updateIntervalRef = useRef<ReturnType<typeof setInterval>>();
+  const currentPhaseRef = useRef<string>("SENSE");
+  const expressionTickRef = useRef<ReturnType<typeof setInterval>>();
+
+  // Subscribe to live endocrine updates from the thinking substrate
+  // and drive the expression pipeline at ~10Hz for smooth animation
+  useEffect(() => {
+    let latestEndocrine: EndocrineState | null = null;
+
+    // Listen for phase changes to track current Echobeat step
+    const unsubPhase = subscribePhaseChange((_phase: number, phaseName: string) => {
+      currentPhaseRef.current = phaseName.toUpperCase();
+    });
+
+    // Listen for endocrine state pushes from the substrate
+    const unsub = subscribeEndocrine((hormones: Record<string, number>) => {
+      latestEndocrine = {
+        cortisol: hormones.cortisol ?? 0.2,
+        dopamine: hormones.dopamine ?? 0.4,
+        serotonin: hormones.serotonin ?? 0.5,
+        oxytocin: hormones.oxytocin ?? 0.3,
+        norepinephrine: hormones.norepinephrine ?? 0.3,
+        endorphin: hormones.endorphin ?? 0.4,
+        melatonin: hormones.melatonin ?? 0.1,
+        gaba: hormones.gaba ?? 0.5,
+      };
+    });
+
+    // Run expression pipeline at ~10Hz for smooth Cubism parameter updates
+    expressionTickRef.current = setInterval(() => {
+      const controller = avatarController.current;
+      if (!controller || !latestEndocrine) return;
+
+      const { cubism, mode, expression } = dteExpressionTick(
+        latestEndocrine,
+        currentPhaseRef.current,
+      );
+
+      // Apply Cubism parameters directly to the Live2D model
+      controller.setParameter("ParamAngleX", cubism.ParamAngleX);
+      controller.setParameter("ParamAngleY", cubism.ParamAngleY);
+      controller.setParameter("ParamAngleZ", cubism.ParamAngleZ);
+      controller.setParameter("ParamEyeLOpen", cubism.ParamEyeLOpen);
+      controller.setParameter("ParamEyeROpen", cubism.ParamEyeROpen);
+      controller.setParameter("ParamEyeBallX", cubism.ParamEyeBallX);
+      controller.setParameter("ParamEyeBallY", cubism.ParamEyeBallY);
+      controller.setParameter("ParamBrowLY", cubism.ParamBrowLY);
+      controller.setParameter("ParamBrowRY", cubism.ParamBrowRY);
+      controller.setParameter("ParamMouthForm", cubism.ParamMouthForm);
+      controller.setParameter("ParamMouthOpenY", cubism.ParamMouthOpenY);
+      controller.setParameter("ParamBodyAngleX", cubism.ParamBodyAngleX);
+      controller.setParameter("ParamBodyAngleZ", cubism.ParamBodyAngleZ);
+
+      // Update debug state
+      if (showEndocrineDebug && latestEndocrine) {
+        setCharacterState({
+          cognitiveMode: mode,
+          activeExpressions: [expression],
+          hormoneSnapshot: latestEndocrine as unknown as Record<string, number>,
+          tickCount: Date.now(),
+        });
+      }
+    }, 100); // 10Hz for smooth animation
+
+    return () => {
+      unsub();
+      unsubPhase();
+      if (expressionTickRef.current) clearInterval(expressionTickRef.current);
+    };
+  }, [showEndocrineDebug]);
 
   // Initialize the character instance
   useEffect(() => {

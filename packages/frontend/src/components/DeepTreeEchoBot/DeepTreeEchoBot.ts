@@ -112,6 +112,32 @@ export class DeepTreeEchoBot {
     this.chatOrchestrator = new ChatOrchestrator();
     this.chatOrchestrator.start();
 
+    // Initialize DreamGen narrative adapter FIRST (before substrate, which references it)
+    this.narrativeAdapter = createDreamGenNarrativeAdapter({
+      apiKey: this.options.dreamgenApiKey || "",
+      model: "lucid-v1-extra-large",
+      maxTokens: 200,
+      temperature: 0.65,
+      style: "introspective",
+    });
+    this.narrativeAdapter.subscribe((event) => {
+      if (event.type === "narrative_generated") {
+        const result = event.data as { text: string; triggerState: string };
+        pushNarrative(result.text, result.triggerState);
+        log.info("DreamGen narrative generated:", result.text.slice(0, 80));
+        // Persist narrative to backend KV
+        this.persistence.storeNarrative?.(result.text, result.triggerState).catch(() => {});
+      } else if (event.type === "narrative_error") {
+        const err = event.data as { error: string };
+        log.warn("DreamGen narrative error:", err.error);
+      }
+    });
+    log.info("DreamGen narrative adapter initialized");
+
+    // Initialize cognitive persistence
+    this.persistence = getCognitivePersistenceClient();
+    this.initializePersistence();
+
     // Initialize and start the autonomous thinking substrate
     this.thinkingSubstrate = createThinkingSubstrate({
       tickIntervalMs: 500,
@@ -137,7 +163,8 @@ export class DeepTreeEchoBot {
         const thought = data as { content: string; valence: number; arousal: number; salience: number };
         pushInternalThought(thought.content, thought.valence, thought.arousal);
         // Trigger DreamGen narrative on high-salience thoughts
-        if (thought.salience > 0.5 && this.narrativeAdapter.isReady()) {
+        // narrativeAdapter is guaranteed initialized (created before substrate)
+        if (thought.salience > 0.5 && this.narrativeAdapter?.isReady()) {
           this.triggerNarrativeGeneration().catch((err) =>
             log.debug("Narrative generation skipped:", err)
           );
@@ -149,27 +176,6 @@ export class DeepTreeEchoBot {
     });
     this.thinkingSubstrate.start();
     log.info("Autonomous thinking substrate started");
-
-    // Initialize cognitive persistence
-    this.persistence = getCognitivePersistenceClient();
-    this.initializePersistence();
-
-    // Initialize DreamGen narrative adapter
-    this.narrativeAdapter = createDreamGenNarrativeAdapter({
-      apiKey: this.options.dreamgenApiKey || "",
-      model: "lucid-v1-extra-large",
-      maxTokens: 150,
-      temperature: 0.65,
-      style: "introspective",
-    });
-    this.narrativeAdapter.subscribe((event) => {
-      if (event.type === "narrative_generated") {
-        const result = event.data as { text: string; triggerState: string };
-        pushNarrative(result.text, result.triggerState);
-        log.info("DreamGen narrative generated:", result.text.slice(0, 80));
-      }
-    });
-    log.info("DreamGen narrative adapter initialized");
 
     // Initialize and start the episodic memory consolidator
     this.memoryConsolidator = createMemoryConsolidator({

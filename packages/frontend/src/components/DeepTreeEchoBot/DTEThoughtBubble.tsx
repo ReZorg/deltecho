@@ -149,6 +149,8 @@ export function pushPhaseChange(phase: number, phaseName: string): void {
     timestamp: Date.now(),
     phase: String(phase),
   });
+  // Notify phase listeners for expression pipeline
+  notifyPhaseListeners(phase, phaseName);
 }
 
 /** Push an endocrine mood update */
@@ -201,6 +203,27 @@ export function pushEndocrineState(hormones: Record<string, number>): void {
 export function subscribeEndocrine(listener: EndocrineListener): () => void {
   endocrineListeners.add(listener);
   return () => endocrineListeners.delete(listener);
+}
+
+// Phase change event bus
+type PhaseListener = (phase: number, phaseName: string) => void;
+const phaseListeners = new Set<PhaseListener>();
+let lastPhaseName = "SENSE";
+
+/** Notify phase change listeners (called from pushPhaseChange) */
+function notifyPhaseListeners(phase: number, phaseName: string): void {
+  lastPhaseName = phaseName;
+  phaseListeners.forEach((listener) => {
+    try { listener(phase, phaseName); } catch { /* swallow */ }
+  });
+}
+
+/** Subscribe to phase change updates */
+export function subscribePhaseChange(listener: PhaseListener): () => void {
+  phaseListeners.add(listener);
+  // Immediately fire with last known phase
+  try { listener(0, lastPhaseName); } catch { /* swallow */ }
+  return () => phaseListeners.delete(listener);
 }
 
 // ============================================================

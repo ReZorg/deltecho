@@ -320,6 +320,7 @@ export const AvatarCognitivePanel: React.FC = () => {
           width={400}
           height={500}
           className="avatar-cognitive-panel__live2d"
+          showEndocrineDebug={true}
         />
       </div>
     </div>
